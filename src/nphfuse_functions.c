@@ -32,13 +32,13 @@ void get_fullpath(char fp[PATH_MAX],char *path)
     {
         printf("Path not in root --> %s\n",path);
         strcpy(path,"/");
-        strcpy(fp, KVFS_DATA->device_name);
+        strcpy(fp, NPHFS_DATA->device_name);
         strncat(fp, path, PATH_MAX); 
     }
     else
     {
         printf("Path in root --> %s\n",path);
-        strcpy(fp, KVFS_DATA->device_name);
+        strcpy(fp, NPHFS_DATA->device_name);
         strncat(fp, "/", PATH_MAX);
         strncat(fp, path, PATH_MAX);
     } 
