@@ -30,7 +30,7 @@
 void get_fullpath(char fp[PATH_MAX],char *path)
 {
     char *root_path="/";
-    root_path = str2md5(root_path, strlen(root_path));
+    //root_path = str2md5(root_path, strlen(root_path));
 
 
     if(strcmp(path,root_path)==0)
