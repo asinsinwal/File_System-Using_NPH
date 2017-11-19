@@ -33,8 +33,22 @@
  */
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
-    return -ENOENT;
+    log_msg("Into LS function");
     
+    char fpath[PATH_MAX];
+    get_fpath(fpath,path);
+
+    int ret;
+
+    ret=stat(fpath,stbuf);
+    
+    if(ret){
+        printf("Path doesn't exist\n");
+        printf("dir: %s\n",path);
+        return -ENOENT;
+    }
+
+    return ret;
 }
 
 /** Read the target of a symbolic link
