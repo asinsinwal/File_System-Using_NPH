@@ -19,7 +19,12 @@
 
 #include "nphfuse.h"
 #include <npheap.h>
-
+#include "log.h"
+#include <unistd.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <stdio.h>
+#include <ftw.h>
 
 
 void get_fullpath(char fp[PATH_MAX],char *path)
