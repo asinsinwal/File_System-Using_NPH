@@ -20,6 +20,30 @@
 #include "nphfuse.h"
 #include <npheap.h>
 
+
+
+void get_fullpath(char fp[PATH_MAX],char *path)
+{
+    char *root_path="/";
+    root_path = str2md5(root_path, strlen(root_path));
+
+
+    if(strcmp(path,root_path)==0)
+    {
+        printf("Path not in root --> %s\n",path);
+        strcpy(path,"/");
+        strcpy(fp, KVFS_DATA->device_name);
+        strncat(fp, path, PATH_MAX); 
+    }
+    else
+    {
+        printf("Path in root --> %s\n",path);
+        strcpy(fp, KVFS_DATA->device_name);
+        strncat(fp, "/", PATH_MAX);
+        strncat(fp, path, PATH_MAX);
+    } 
+}
+
 ///////////////////////////////////////////////////////////
 //
 // Prototypes for all these functions, and the C-style comments,
@@ -33,8 +57,24 @@
  */
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
-    return -ENOENT;
+    log_msg("Into LS function\n");
+    printf("calling getattr on %s \t %s \n",path, stbuf);
+
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath, path);
+
+    int ret;
+    printf("Path is %s\n",path);
+    ret=stat(fullpath,stbuf);
+    printf("Fullpath is %s\n",fullpath);
     
+    if(ret){
+        printf("No path found\n");
+        printf("dir: %s\n",path);
+        return -ENOENT;
+    }
+
+    return ret;
 }
 
 /** Read the target of a symbolic link
