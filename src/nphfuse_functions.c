@@ -19,44 +19,83 @@
 
 #include "nphfuse.h"
 #include <npheap.h>
-#include "log.h"
+#include <ctype.h>
+#include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <fuse.h>
+#include <libgen.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <dirent.h>
-#include <stdio.h>
-#include <ftw.h>
+#include "log.h"
 
-int start = 0;
-
-typedef struct llNode{
-    char* hashVal;
-    char* fileName;
-    struct llNode *next;
-}llNode;
-
-llNode* root = NULL;
-/*
+#ifdef HAVE_SYS_XATTR_H
+#include <sys/xattr.h>
+#endif
 
 
+#if defined(__APPLE__)
+#  define COMMON_DIGEST_FOR_OPENSSL
+#  include <CommonCrypto/CommonDigest.h>
+#  define SHA1 CC_SHA1
+#else
+#  include <openssl/md5.h>
+#endif
 
 
+char *str2md5(const char *str, int length) {
+    int n;
+    MD5_CTX c;
+    unsigned char digest[16];
+    char *out = (char*) npheap_alloc(NPHFS_DATA->devfd, 10, 33);
 
-*/
+    MD5_Init(&c);
 
-char global_root[PATH_MAX];
+    while (length > 0) {
+        if (length > 512) {
+            MD5_Update(&c, str, 512);
+        } else {
+            MD5_Update(&c, str, length);
+        }
+        length -= 512;
+        str += 512;
+    }
 
-static void real_path(char actual_path[PATH_MAX], const char *path)
-{
-    strcpy(actual_path, NPHFS_DATA->device_name);
-    strncat(actual_path, path, PATH_MAX);
+    MD5_Final(digest, &c);
+
+    for (n = 0; n < 16; ++n) {
+        snprintf(&(out[n*2]), 16*2, "%02x", (unsigned int)digest[n]);
+    }
+
+    return out;
 }
 
-static void real_path_inside_root(char actual_path[PATH_MAX], const char *path)
+void get_fpath(char fp[PATH_MAX],char *path)
 {
-    strcpy(actual_path, NPHFS_DATA->device_name);
-    strcat(actual_path,"/");
-    strncat(actual_path, path, PATH_MAX);
+    char *root_path="/";
+    root_path = str2md5(root_path, strlen(root_path));
+
+
+    if(strcmp(path,root_path)==0)
+    {
+       printf("Outside Root!!!%s\n",path);
+       strcpy(path,"/");
+      strcpy(fp, NPHFS_DATA->device_name);
+      strncat(fp, path, PATH_MAX); 
+    }
+    else
+    {
+      printf("INside Root!!!%s\n",path);
+      strcpy(fp, NPHFS_DATA->device_name);
+      strncat(fp, "/", PATH_MAX);
+      strncat(fp, path, PATH_MAX);
+    } 
 }
+
 ///////////////////////////////////////////////////////////
 //
 // Prototypes for all these functions, and the C-style comments,
@@ -70,34 +109,23 @@ static void real_path_inside_root(char actual_path[PATH_MAX], const char *path)
  */
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
-    int retstat;
-    char actual_path[PATH_MAX],actual_path2[PATH_MAX];
+    char* result = str2md5(path, strlen(path));
 
-    if(start==0)
+    printf("call getattr\n");
+    char fpath[PATH_MAX];
+    get_fpath(fpath,result);
+    int ret;
+    printf("Path ===> %s\n",result);
+    
+    ret=stat(fpath,stbuf);
+    printf("FPATH ===> %s\n",fpath);
+    if(ret)
     {
-      //Predefine the root value to an easily accessible name.
-      root = (llNode *)malloc(sizeof(llNode));
-      root->fileName = "/";
-      root->hashVal = str2md5(root->fileName,strlen(root->fileName));
-  
-     first_run=1;
-    }
-    
-    if(strcmp(root->hashVal,path)==0){
-      log_msg("INSIDE IF");
-      path = "/";
-      real_path(actual_path,path);
-    }	
-    else{
-      log_msg("INSIDE ELSE");
-      real_path_inside_root(actual_path,path);
-    }
-    	
-    retstat = log_syscall("lstat", lstat(actual_path, stbuf), 0);
-    
-    log_stat(stbuf);
-    
-    return retstat;
+        printf("path not exits\n");
+        printf("dir:%s\n",result);
+        return -ENOENT;
+    }  
+    return ret;
 }
 
 /** Read the target of a symbolic link
@@ -453,9 +481,14 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     log_msg("\nnphfuse_init()\n");
     log_conn(conn);
     log_fuse_context(fuse_get_context());
-        
+    
+    log_msg("Into INIT function \n");
+
+    
+
     return NPHFS_DATA;
 }
+
 
 /**
  * Clean up filesystem
