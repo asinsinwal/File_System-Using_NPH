@@ -47,6 +47,7 @@ void get_fullpath(char fp[PATH_MAX],char *path)
         strncat(fp, "/", PATH_MAX);
         strncat(fp, path, PATH_MAX);
     } 
+    path = "//home/assinsin/CSC501_NPHFS/src/emptydir";
 }
 
 ///////////////////////////////////////////////////////////
@@ -63,7 +64,7 @@ void get_fullpath(char fp[PATH_MAX],char *path)
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
     log_msg("Into LS function\n");
-    printf("calling getattr on %s \t %s \n",path, stbuf);
+    printf("calling getattr on %s \n",path);
 
     char fullpath[PATH_MAX];
     get_fullpath(fullpath, path);
