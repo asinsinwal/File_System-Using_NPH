@@ -72,6 +72,16 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
     int retstat;
     char actual_path[PATH_MAX],actual_path2[PATH_MAX];
+
+    if(first_run==0)
+    {
+      //Predefine the root value to an easily accessible name.
+      root = (ListNode *)malloc(sizeof(ListNode));
+      root->fileName = "/";
+      root->hashVal = str2md5(root->fileName,strlen(root->fileName));
+  
+     first_run=1;
+    }
     
     if(strcmp(root->hashVal,path)==0){
       log_msg("INSIDE IF");
