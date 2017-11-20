@@ -26,30 +26,37 @@
 #include <stdio.h>
 #include <ftw.h>
 
+int start = 0;
 
-void get_fullpath(char fp[PATH_MAX],char *path)
+typedef struct llNode{
+    char* hashVal;
+    char* fileName;
+    struct llNode *next;
+}llNode;
+
+llNode* root = NULL;
+/*
+
+
+
+
+
+*/
+
+char global_root[PATH_MAX];
+
+static void real_path(char actual_path[PATH_MAX], const char *path)
 {
-    char *root_path="/";
-    //root_path = str2md5(root_path, strlen(root_path));
-
-
-    if(strcmp(path,root_path)==0)
-    {
-        printf("Path not in root --> %s\n",path);
-        strcpy(path,"/");
-        strcpy(fp, NPHFS_DATA->device_name);
-        strncat(fp, path, PATH_MAX); 
-    }
-    else
-    {
-        printf("Path in root --> %s\n",path);
-        strcpy(fp, NPHFS_DATA->device_name);
-        strncat(fp, "/", PATH_MAX);
-        strncat(fp, path, PATH_MAX);
-    } 
-    path = "//home/assinsin/CSC501_NPHFS/src/emptydir";
+    strcpy(actual_path, NPHFS_DATA->device_name);
+    strncat(actual_path, path, PATH_MAX);
 }
 
+static void real_path_inside_root(char actual_path[PATH_MAX], const char *path)
+{
+    strcpy(actual_path, NPHFS_DATA->device_name);
+    strcat(actual_path,"/");
+    strncat(actual_path, path, PATH_MAX);
+}
 ///////////////////////////////////////////////////////////
 //
 // Prototypes for all these functions, and the C-style comments,
@@ -63,24 +70,24 @@ void get_fullpath(char fp[PATH_MAX],char *path)
  */
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
-    log_msg("Into LS function\n");
-    printf("calling getattr on %s \n",path);
-
-    char fullpath[PATH_MAX];
-    get_fullpath(fullpath, path);
-
-    int ret;
-    printf("Path is %s\n",path);
-    ret=stat(fullpath,stbuf);
-    printf("Fullpath is %s\n",fullpath);
+    int retstat;
+    char actual_path[PATH_MAX],actual_path2[PATH_MAX];
     
-    if(ret){
-        printf("No path found\n");
-        printf("dir: %s\n",path);
-        return -ENOENT;
+    if(strcmp(root->hashVal,path)==0){
+      log_msg("INSIDE IF");
+      path = "/";
+      real_path(actual_path,path);
+    }	
+    else{
+      log_msg("INSIDE ELSE");
+      real_path_inside_root(actual_path,path);
     }
-
-    return ret;
+    	
+    retstat = log_syscall("lstat", lstat(actual_path, statbuf), 0);
+    
+    log_stat(statbuf);
+    
+    return retstat;
 }
 
 /** Read the target of a symbolic link
