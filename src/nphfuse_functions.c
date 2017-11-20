@@ -33,68 +33,14 @@
 #include <sys/types.h>
 #include "log.h"
 
-#ifdef HAVE_SYS_XATTR_H
-#include <sys/xattr.h>
-#endif
 
+struct llist{
+    char *filename;
+    char *dirname;
+    _u64 offset;
+    struct llist next;
+}llist;
 
-#if defined(__APPLE__)
-#  define COMMON_DIGEST_FOR_OPENSSL
-#  include <CommonCrypto/CommonDigest.h>
-#  define SHA1 CC_SHA1
-#else
-#  include <openssl/md5.h>
-#endif
-
-
-char *str2md5(const char *str, int length) {
-    int n;
-    MD5_CTX c;
-    unsigned char digest[16];
-    char *out = (char*) npheap_alloc(NPHFS_DATA->devfd, 10, 33);
-
-    MD5_Init(&c);
-
-    while (length > 0) {
-        if (length > 512) {
-            MD5_Update(&c, str, 512);
-        } else {
-            MD5_Update(&c, str, length);
-        }
-        length -= 512;
-        str += 512;
-    }
-
-    MD5_Final(digest, &c);
-
-    for (n = 0; n < 16; ++n) {
-        snprintf(&(out[n*2]), 16*2, "%02x", (unsigned int)digest[n]);
-    }
-
-    return out;
-}
-
-void get_fpath(char fp[PATH_MAX],char *path)
-{
-    char *root_path="/";
-    root_path = str2md5(root_path, strlen(root_path));
-
-
-    if(strcmp(path,root_path)==0)
-    {
-       printf("Outside Root!!!%s\n",path);
-       strcpy(path,"/");
-      strcpy(fp, NPHFS_DATA->device_name);
-      strncat(fp, path, PATH_MAX); 
-    }
-    else
-    {
-      printf("INside Root!!!%s\n",path);
-      strcpy(fp, NPHFS_DATA->device_name);
-      strncat(fp, "/", PATH_MAX);
-      strncat(fp, path, PATH_MAX);
-    } 
-}
 
 ///////////////////////////////////////////////////////////
 //
@@ -109,23 +55,7 @@ void get_fpath(char fp[PATH_MAX],char *path)
  */
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
-    char* result = str2md5(path, strlen(path));
-
-    printf("call getattr\n");
-    char fpath[PATH_MAX];
-    get_fpath(fpath,result);
-    int ret;
-    printf("Path ===> %s\n",result);
-    
-    ret=stat(fpath,stbuf);
-    printf("FPATH ===> %s\n",fpath);
-    if(ret)
-    {
-        printf("path not exits\n");
-        printf("dir:%s\n",result);
-        return -ENOENT;
-    }  
-    return ret;
+    return -1;
 }
 
 /** Read the target of a symbolic link
@@ -199,25 +129,25 @@ int nphfuse_link(const char *path, const char *newpath)
 /** Change the permission bits of a file */
 int nphfuse_chmod(const char *path, mode_t mode)
 {
-        return -ENOENT;
+    return -ENOENT;
 }
 
 /** Change the owner and group of a file */
 int nphfuse_chown(const char *path, uid_t uid, gid_t gid)
 {
-        return -ENOENT;
+    return -ENOENT;
 }
 
 /** Change the size of a file */
 int nphfuse_truncate(const char *path, off_t newsize)
 {
-        return -ENOENT;
+    return -ENOENT;
 }
 
 /** Change the access and/or modification times of a file */
 int nphfuse_utime(const char *path, struct utimbuf *ubuf)
 {
-        return -ENOENT;
+    return -ENOENT;
 }
 
 /** File open operation
@@ -411,13 +341,12 @@ int nphfuse_opendir(const char *path, struct fuse_file_info *fi)
  */
 
 int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
-	       struct fuse_file_info *fi)
+           struct fuse_file_info *fi)
 {
     return -ENOENT;
 }
 
-/** Release directory
- */
+/** Release directory */
 int nphfuse_releasedir(const char *path, struct fuse_file_info *fi)
 {
     return 0;
@@ -483,8 +412,6 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     log_fuse_context(fuse_get_context());
     
     log_msg("Into INIT function \n");
-
-    
 
     return NPHFS_DATA;
 }

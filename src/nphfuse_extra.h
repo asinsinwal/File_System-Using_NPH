@@ -10,6 +10,5 @@
 struct nphfuse_state {
     FILE *logfile;
     char *device_name;
-    char *rootdir;
     int devfd;
 };
