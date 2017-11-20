@@ -76,7 +76,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
     if(first_run==0)
     {
       //Predefine the root value to an easily accessible name.
-      root = (ListNode *)malloc(sizeof(ListNode));
+      root = (llNode *)malloc(sizeof(llNode));
       root->fileName = "/";
       root->hashVal = str2md5(root->fileName,strlen(root->fileName));
   
