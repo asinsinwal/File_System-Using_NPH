@@ -83,9 +83,9 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
       real_path_inside_root(actual_path,path);
     }
     	
-    retstat = log_syscall("lstat", lstat(actual_path, statbuf), 0);
+    retstat = log_syscall("lstat", lstat(actual_path, stbuf), 0);
     
-    log_stat(statbuf);
+    log_stat(stbuf);
     
     return retstat;
 }
