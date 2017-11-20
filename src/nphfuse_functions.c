@@ -73,7 +73,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
     int retstat;
     char actual_path[PATH_MAX],actual_path2[PATH_MAX];
 
-    if(first_run==0)
+    if(start==0)
     {
       //Predefine the root value to an easily accessible name.
       root = (llNode *)malloc(sizeof(llNode));
