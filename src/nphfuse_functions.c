@@ -190,13 +190,28 @@ int nphfuse_link(const char *path, const char *newpath)
 /** Change the permission bits of a file */
 int nphfuse_chmod(const char *path, mode_t mode)
 {
-    return -ENOENT;
+    log_msg("Into chmod function\n");
+
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+
+    int retval;
+
+	retval = chmod(fullpath, mode);
+	if (retval == -1)
+		return -errno;
+
+	return 0;
 }
 
 /** Change the owner and group of a file */
 int nphfuse_chown(const char *path, uid_t uid, gid_t gid)
 {
-    return -ENOENT;
+    log_msg("Into chown function\n");
+
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+    return lchown(fullpath, uid, gid);
 }
 
 /** Change the size of a file */
@@ -208,7 +223,15 @@ int nphfuse_truncate(const char *path, off_t newsize)
 /** Change the access and/or modification times of a file */
 int nphfuse_utime(const char *path, struct utimbuf *ubuf)
 {
-    return -ENOENT;
+    log_msg("Into utime function\n");
+
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+
+    int retval=utime(fullpath, ubuf);
+
+    printf("Actual time %d\n", ubuf->actime);
+    return retval;
 }
 
 /** File open operation
@@ -310,6 +333,7 @@ int nphfuse_statfs(const char *path, struct statvfs *statv)
 // this is a no-op in NPHFS.  It just logs the call and returns success
 int nphfuse_flush(const char *path, struct fuse_file_info *fi)
 {
+    log_msg("Into flush function\n");
     log_msg("\nnphfuse_flush(path=\"%s\", fi=0x%08x)\n", path, fi);
     // no need to get fpath on this one, since I work from fi->fh not the path
     log_fi(fi);
