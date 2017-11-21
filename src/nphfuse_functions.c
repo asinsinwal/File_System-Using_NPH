@@ -642,7 +642,7 @@ int nphfuse_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi)
 int nphfuse_fgetattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi)
 {
     log_msg("Into fgetattr function \n");
-    retval = nphfuse_getattr(path, statbuf);
+    int retval = nphfuse_getattr(path, statbuf);
     
   	return retval;
 }
