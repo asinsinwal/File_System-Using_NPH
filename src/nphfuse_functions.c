@@ -33,8 +33,8 @@
 
 //Assuming the root is stored at objectID 999 in npheap.
 
-extern nphfuse_state nphfs_state;
-extern nphfuse_file_metadata nphfs_md;
+extern struct nphfuse_state nphfs_state;
+extern struct nphfuse_file_metadata nphfs_md;
 
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
