@@ -33,14 +33,41 @@
 #include <sys/types.h>
 #include "log.h"
 
+#define set = 0 
 
-struct llist{
+typedef struct listnode{
     char *filename;
     char *dirname;
     _u64 offset;
-    struct llist next;
+    struct listnode *next;
 }llist;
 
+void get_fullpath(char fp[PATH_MAX],char *path)
+{
+    log_msg("Into getfullpath \n");
+
+    if(set == 0){
+        system("mkdir /home/npheap");
+        set = 1;
+    }
+    memset(fp,0,PATH_MAX);
+
+    char *root_path="/";
+    strcpy(fp, "/home/npheap");
+
+    if(strcmp(path,root_path)==0)
+    {
+        strcpy(path,"/");
+        strncat(fp, path, PATH_MAX); 
+    }
+    else
+    {
+        strncat(fp, "/", PATH_MAX);
+        strncat(fp, path, PATH_MAX);
+    }
+
+    printf("Fullpath is %s \n", fp);
+}
 
 ///////////////////////////////////////////////////////////
 //
@@ -55,7 +82,19 @@ struct llist{
  */
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
-    return -1;
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+    int ret;
+    ret=stat(fpath,stbuf);
+    log_msg("Fullpath is %s \n", fullpath);
+
+    retval = lstat(fullpath, stbuf);
+
+    if(retval){
+        printf("[%s] doesn't exist.!!!\n",path);
+        return -ENOENT;
+    }
+    return retval;
 }
 
 /** Read the target of a symbolic link
@@ -368,8 +407,17 @@ int nphfuse_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi)
 
 int nphfuse_access(const char *path, int mask)
 {
-    return 0;
-//    return -1;
+    printf("CALL ACCESS \n");
+
+    int retstat = 0;
+    char fpath[PATH_MAX];
+    get_fpath(fpath,path);
+
+    printf("ACCESS FPATH ===> %s\n", fpath);
+
+    retstat = access(fpath, mask);
+  
+    return retstat;
 }
 
 /**
@@ -412,6 +460,10 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     log_fuse_context(fuse_get_context());
     
     log_msg("Into INIT function \n");
+
+    npheap_alloc(NPHFS_DATA->devfd, 10, sizeof(struct *listnode));
+
+    llist = NULL;
 
     return NPHFS_DATA;
 }
