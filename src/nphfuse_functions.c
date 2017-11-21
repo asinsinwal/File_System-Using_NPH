@@ -15,7 +15,6 @@
 */
 
 #include "nphfuse.h"
-#include "nphfuse_extra.h"
 #include <npheap.h>
 #include <unistd.h>
 #include <dirent.h>
