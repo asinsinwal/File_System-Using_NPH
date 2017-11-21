@@ -15,6 +15,6 @@ struct nphfuse_state {
 };
 
 struct nphfs_file_metadata {
-  stat filestat;
+  struct stat filestat;
   char *filename;
 };
