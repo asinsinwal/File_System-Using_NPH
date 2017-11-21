@@ -33,7 +33,7 @@
 #include <sys/types.h>
 #include "log.h"
 
-#define set = 0 
+#define SET 0 
 
 typedef struct listnode{
     char *filename;
@@ -46,9 +46,9 @@ void get_fullpath(char fp[PATH_MAX],char *path)
 {
     log_msg("Into getfullpath \n");
 
-    if(set == 0){
+    if(SET == 0){
         system("mkdir /home/npheap");
-        set = 1;
+        SET = 1;
     }
     memset(fp,0,PATH_MAX);
 
