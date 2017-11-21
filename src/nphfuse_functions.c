@@ -399,7 +399,7 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     memset(ptr, 0, 8192);
     struct nphfs_file_metadata root;
     root.filestat.st_ino = 999;
-    root.filestat.st_dev =  nphfuse_state->devfd;
+    root.filestat.st_dev =  nphfs_data->devfd;
     root.filestat.st_mode = S_IFDIR | 0755;
     root.filestat.st_nlink = 2;
     root.filestat.st_uid = getuid();
