@@ -450,7 +450,28 @@ int nphfuse_opendir(const char *path, struct fuse_file_info *fi)
 int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
            struct fuse_file_info *fi)
 {
-    return -ENOENT;
+    log_msg("Into readdir function\n");
+
+    int retval = 0;
+    DIR *dirp;
+
+    struct dirent *dent;
+   
+    dirp = (DIR *) (uintptr_t) fi->fh;
+    dent = readdir(dirp);
+
+    if (dent == 0) {
+	return retval;
+    }
+
+    do {
+	    if (filler(buf, dent->d_name, NULL, 0) != 0) {
+		    printf("Error thrown \n");
+	        return -ENOMEM;
+	    }
+    } while ((dent = readdir(dirp)) != NULL);
+    
+    return retval;
 }
 
 /** Release directory */
