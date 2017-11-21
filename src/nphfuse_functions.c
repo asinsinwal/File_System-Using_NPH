@@ -399,6 +399,7 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     memset(ptr, 0, 8192);
     struct nphfs_file_metadata root;
     root.filestat.st_ino = 999;
+    void *ptr = npheap_alloc(nphfs_data->devfd, 999, 8192);
     root.filestat.st_dev =  nphfuse_state->devfd;
     root.filestat.st_mode = S_IFDIR | 0755;
     root.filestat.st_nlink = 2;
