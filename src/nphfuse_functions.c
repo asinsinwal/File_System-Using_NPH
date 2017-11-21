@@ -53,7 +53,9 @@ void get_fullpath(char fp[PATH_MAX],char *path)
     memset(fp,0,PATH_MAX);
 
     char *root_path="/";
-    strcpy(fp, "$HOME/npheap");
+    const char* s = getenv("HOME");
+    strcpy(fp, s);
+    strncpy(fp, "/npheap", PATH_MAX);
 
     if(strcmp(path,root_path)==0)
     {
