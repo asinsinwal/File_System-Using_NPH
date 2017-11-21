@@ -158,20 +158,20 @@ int nphfuse_mkdir(const char *path, mode_t mode)
              }                 
         }
         int offset =getNextFreeOffset();
-        npheap_lock(nphfuse_data->devfd, offset);  
+//        npheap_lock(nphfuse_data->devfd, offset);  
         //adding dirent
         dirArray[i].d_ino=offset;
         memcpy(dirArray[i].d_name,pathToken,strlen(pathToken));
         //creating new object
         createObject(offset, pathToken, mode);
-        npheap_unlock(nphfuse_data->devfd, offset);  
+//        npheap_unlock(nphfuse_data->devfd, offset);  
 
     return -ENOENT;
 }
 
 void createObject(int offset, char * filename, mode_t mode)
 {
-    npheap_lock(nphfuse_data->devfd, offset);    
+//    npheap_lock(nphfuse_data->devfd, offset);    
     void *ptr = npheap_alloc(nphfuse_data->devfd, offset, 8192);
     memset(ptr, 0, 8192);
     struct nphfs_file_metadata nodemd;
@@ -201,7 +201,7 @@ void createObject(int offset, char * filename, mode_t mode)
     }
     memcpy(ptr + sizeof(struct nphfs_file_metadata)+sizeof(struct dirent), dirs, sizeof(struct dirent)*maxDirs);
     log_msg("\n Created dir-entries array for %s", filename);
-    npheap_unlock(nphfuse_data->devfd, offset);
+//    npheap_unlock(nphfuse_data->devfd, offset);
 }
 
 int getNextFreeOffset()
@@ -538,7 +538,7 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     log_fuse_context(fuse_get_context());
     int size = npheap_getsize(nphfuse_data->devfd, 999);
     if(!size){
-    npheap_lock(nphfuse_data->devfd, 999);    
+//    npheap_lock(nphfuse_data->devfd, 999);    
     void *ptr = npheap_alloc(nphfuse_data->devfd, 999, 8192);
     memset(ptr, 0, 8192);
     struct nphfs_file_metadata rootmd;
@@ -568,7 +568,7 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     }
     memcpy(ptr + sizeof(struct nphfs_file_metadata)+sizeof(struct dirent), dirs, sizeof(struct dirent)*maxDirs);
 
-    npheap_unlock(nphfuse_data->devfd, 999);
+//    npheap_unlock(nphfuse_data->devfd, 999);
     }
     return NPHFS_DATA;
     
