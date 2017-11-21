@@ -461,10 +461,6 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     
     log_msg("Into INIT function \n");
 
-    npheap_alloc(NPHFS_DATA->devfd, 10, sizeof(struct *listnode));
-
-    llist = NULL;
-
     return NPHFS_DATA;
 }
 
