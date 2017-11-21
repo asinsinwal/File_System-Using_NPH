@@ -31,7 +31,7 @@
  * mount option is given.
  */
 
-//Assuming the rootmd is stored at objectID 999 in npheap.
+//Assuming the nodemd is stored at objectID 999 in npheap.
 extern struct nphfuse_state *nphfuse_data;
 static int maxDirs;
 
@@ -115,8 +115,106 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev)
 /** Create a directory */
 int nphfuse_mkdir(const char *path, mode_t mode)
 {
+    void *curr;
+//    void *prev;
+        char *pathToken;     
+        pathToken = strtok(path,"/");        
+        int tempOffset=999;
+        curr= npheap_alloc(nphfuse_data->devfd, tempOffset, 8192);
+        struct dirent dirArray[maxDirs] ;
+        int i;
+        for(i=0;i<maxDirs;i++)
+        {
+             dirArray[i].d_ino = 0;
+        }
+        //Finding the dir to create the new dir
+        while(pathToken)
+        {
+            memcpy(curr + sizeof(struct nphfs_file_metadata)+sizeof(struct dirent), &dirArray, sizeof(struct dirent)*maxDirs);
+            tempOffset=-1;
+            for(i=0;i<maxDirs;i++)
+            {
+                 if(strcmp(pathToken, dirArray[i].d_name)==0)
+                 {
+                     tempOffset = dirArray[i].d_ino;
+                     break;
+                 }                 
+            }
+            if(tempOffset!=-1)
+            {   
+                curr= npheap_alloc(nphfuse_data->devfd, tempOffset, 8192);
+                pathToken = strtok(NULL,"/");
+            }
+            else{
+                break;
+            }
+        }
+        //Create node
+        for(i=0;i<maxDirs;i++)
+        {
+             if(dirArray[i].d_ino==0)
+             {
+                 break;
+             }                 
+        }
+        int offset =getNextFreeOffset();
+        npheap_lock(nphfuse_data->devfd, offset);  
+        //adding dirent
+        dirent[i].d_ino=offset;
+        memcpy(dirent[i].d_name,filename,strlen(filename));
+        //creating new object
+        createObject(offset, pathToken, mode);
+        npheap_unlock(nphfuse_data->devfd, offset);  
+
     return -ENOENT;
 }
+
+void createObject(int offset, char * filename, mode_t mode)
+{
+    npheap_lock(nphfuse_data->devfd, offset);    
+    void *ptr = npheap_alloc(nphfuse_data->devfd, offset, 8192);
+    memset(ptr, 0, 8192);
+    struct nphfs_file_metadata nodemd;
+    nodemd.filestat.st_ino = offset;
+    nodemd.filestat.st_dev =  nphfuse_data->devfd;
+    nodemd.filestat.st_mode = mode;
+    nodemd.filestat.st_nlink = 1;
+    nodemd.filestat.st_uid = getuid();
+    nodemd.filestat.st_gid = getgid();
+    nodemd.filestat.st_rdev = 0;
+    nodemd.filestat.st_atime =time(NULL);
+    nodemd.filestat.st_mtime =time(NULL);
+    nodemd.filestat.st_ctime =time(NULL);
+    nodemd.filestat.st_blksize = 8192; 
+    nodemd.filestat.st_blocks = 1;
+    nodemd.filename=filename;
+    log_msg("\n Creating metadata for %s", filename);
+    memcpy(ptr,&nodemd,sizeof(struct nphfs_file_metadata));
+    log_msg("\n Created metadata for %s", filename);
+    log_msg("\n Creating dir-entries array for %s", filename);
+    maxDirs=(8192 -sizeof(struct nphfs_file_metadata)-sizeof(struct dirent))/sizeof(struct dirent);
+    struct dirent dirs[maxDirs] ;
+    int i;
+    for(i=0;i<maxDirs;i++)
+    {
+         dirs[i].d_ino = 0;
+    }
+    memcpy(ptr + sizeof(struct nphfs_file_metadata)+sizeof(struct dirent), dirs, sizeof(struct dirent)*maxDirs);
+    log_msg("\n Created dir-entries array for %s", filename);
+    npheap_unlock(nphfuse_data->devfd, offset);
+}
+
+int getNextFreeOffset()
+{
+    int offset =1;
+    while(npheap_getsize(nphfuse_data->devfd, offset)!=0)
+    {
+        offset++;
+    }
+    return offset;
+}
+
+
 
 /** Remove a file */
 int nphfuse_unlink(const char *path)
@@ -443,23 +541,23 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     npheap_lock(nphfuse_data->devfd, 999);    
     void *ptr = npheap_alloc(nphfuse_data->devfd, 999, 8192);
     memset(ptr, 0, 8192);
-    struct nphfs_file_metadata rootmd;
-    rootmd.filestat.st_ino = 999;
-    rootmd.filestat.st_dev =  nphfuse_data->devfd;
-    rootmd.filestat.st_mode = S_IFDIR | 0755;
-    rootmd.filestat.st_nlink = 2;
-    rootmd.filestat.st_uid = getuid();
-    rootmd.filestat.st_gid = getgid();
-    rootmd.filestat.st_rdev = 0;
-    rootmd.filestat.st_atime =time(NULL);
-    rootmd.filestat.st_mtime =time(NULL);
-    rootmd.filestat.st_ctime =time(NULL);
-    rootmd.filestat.st_blksize = 8192; 
-    rootmd.filestat.st_blocks = 1;
-    rootmd.filename="/";
-    log_msg("\n Creating rootmd metadata");
-    memcpy(ptr,&rootmd,sizeof(struct nphfs_file_metadata));
-    log_msg("\n rootmd metadata written");
+    struct nphfs_file_metadata nodemd;
+    nodemd.filestat.st_ino = 999;
+    nodemd.filestat.st_dev =  nphfuse_data->devfd;
+    nodemd.filestat.st_mode = S_IFDIR | 0755;
+    nodemd.filestat.st_nlink = 2;
+    nodemd.filestat.st_uid = getuid();
+    nodemd.filestat.st_gid = getgid();
+    nodemd.filestat.st_rdev = 0;
+    nodemd.filestat.st_atime =time(NULL);
+    nodemd.filestat.st_mtime =time(NULL);
+    nodemd.filestat.st_ctime =time(NULL);
+    nodemd.filestat.st_blksize = 8192; 
+    nodemd.filestat.st_blocks = 1;
+    nodemd.filename="/";
+    log_msg("\n Creating nodemd metadata");
+    memcpy(ptr,&nodemd,sizeof(struct nphfs_file_metadata));
+    log_msg("\n nodemd metadata written");
 
     maxDirs=(8192 -sizeof(struct nphfs_file_metadata)-sizeof(struct dirent))/sizeof(struct dirent);
     struct dirent dirs[maxDirs] ;
