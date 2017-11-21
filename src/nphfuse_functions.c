@@ -33,7 +33,7 @@
 #include <sys/types.h>
 #include "log.h"
 
-#define SET 0 
+int set;
 
 typedef struct listnode{
     char *filename;
@@ -46,9 +46,9 @@ void get_fullpath(char fp[PATH_MAX],char *path)
 {
     log_msg("Into getfullpath \n");
 
-    if(SET == 0){
+    if(set == 0){
         system("mkdir /home/npheap");
-        SET = 1;
+        set = 1;
     }
     memset(fp,0,PATH_MAX);
 
@@ -459,6 +459,8 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     log_fuse_context(fuse_get_context());
     
     log_msg("Into INIT function \n");
+
+    set = 0;
 
     return NPHFS_DATA;
 }
