@@ -59,7 +59,6 @@ void get_fullpath(char fp[PATH_MAX],char *path)
 
     printf("%s and fp is %s \n",s , fp);
 
-
     if(strcmp(path,root_path)==0)
     {
         strcpy(path,"/");
@@ -406,7 +405,24 @@ int nphfuse_removexattr(const char *path, const char *name)
  */
 int nphfuse_opendir(const char *path, struct fuse_file_info *fi)
 {
-    return -ENOENT;
+    log_msg("Into opendir function\n");
+    
+    DIR *dirp;
+    int retval = 0;
+    char fullpath[PATH_MAX];
+    
+    get_fullpath(fullpath,path);
+    
+    dirp = opendir(fullpath);
+    
+    if (dirp==NULL)
+    {
+        printf("Error thrown\n");
+        return retval;
+    }
+    
+    fi->fh = (intptr_t) dirp;
+    return retval;
 }
 
 /** Read directory
