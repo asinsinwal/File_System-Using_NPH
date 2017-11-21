@@ -57,6 +57,9 @@ void get_fullpath(char fp[PATH_MAX],char *path)
     strcpy(fp, s);
     strncpy(fp, "/npheap", PATH_MAX);
 
+    printf("%s and fp is %s \n",s , fp);
+
+
     if(strcmp(path,root_path)==0)
     {
         strcpy(path,"/");
@@ -86,6 +89,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
     char fullpath[PATH_MAX];
     get_fullpath(fullpath,path);
+
     int retval;
     log_msg("Fullpath is %s \n", fullpath);
 
