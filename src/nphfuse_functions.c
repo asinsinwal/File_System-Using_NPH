@@ -461,7 +461,7 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     memcpy(ptr,&rootmd,sizeof(struct nphfs_file_metadata));
     log_msg("\n rootmd metadata written");
 
-    maxDirs=(8192 -sizeof(struct nphfs_file_metadata))/sizeof(struct dirent)-sizeof(struct dirent);
+    maxDirs=(8192 -sizeof(struct nphfs_file_metadata)-sizeof(struct dirent))/sizeof(struct dirent);
     struct dirent dirs[maxDirs] ;
     int i;
     for(i=0;i<maxDirs;i++)
