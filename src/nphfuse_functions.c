@@ -76,7 +76,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
         }
         if(tempOffset!=-1)
         {   
-            memcpy(stbuf, ((struct nphfs_file_metadata*)curr)->filestat, sizeof(struct stat));
+            memcpy(stbuf, &(((struct nphfs_file_metadata*)curr)->filestat), sizeof(struct stat));
             return 0;
         }
     }
