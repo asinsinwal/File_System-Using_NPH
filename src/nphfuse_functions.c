@@ -67,7 +67,6 @@ void get_fullpath(char fp[PATH_MAX],char *path)
     }
     else
     {
-        strncat(fp, "/", PATH_MAX);
         strncat(fp, path, PATH_MAX);
     }
 
