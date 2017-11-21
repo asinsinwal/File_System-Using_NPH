@@ -223,11 +223,18 @@ int nphfuse_utime(const char *path, struct utimbuf *ubuf)
  */
 int nphfuse_open(const char *path, struct fuse_file_info *fi)
 {
-    if ((fi->flags & O_ACCMODE) != O_RDONLY)
-        return -EACCES;
 
-    return -ENOENT;
+    char fpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+	int retval;
 
+	retval = open(fullpath, fi->flags);
+	if (retval == -1)
+		return -errno;
+
+    fi->fh=retval;
+    
+    return 0;
 }
 
 /** Read data from an open file
