@@ -126,7 +126,24 @@ int nphfuse_readlink(const char *path, char *link, size_t size)
  */
 int nphfuse_mknod(const char *path, mode_t mode, dev_t dev)
 {
-    return -ENOENT;
+    log_msg("Into mknod function");
+
+    int retval;
+
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+
+    if (S_ISREG(mode)) {
+        retval = open(fullpath, O_CREAT | O_EXCL | O_WRONLY, mode);
+        if (retval >= 0)
+            retval = close(retval);
+    } 
+    else if (S_ISFIFO(mode))
+        retval = mkfifo(fullpath, mode);
+    else
+        retval =  mknod(fullpath, mode, dev);
+    
+    return retval;
 }
 
 /** Create a directory */
