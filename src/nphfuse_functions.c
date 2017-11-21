@@ -32,7 +32,7 @@
  */
 
 //Assuming the root is stored at objectID 999 in npheap.
-
+extern struct nphfuse_state *nphfs_data;
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
     if (path == "/")
@@ -395,7 +395,7 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     log_msg("\nnphfuse_init()\n");
     log_conn(conn);
     log_fuse_context(fuse_get_context());
-    void *ptr = npheap_alloc(nphfuse_state.devfd, 999, 8192);
+    void *ptr = npheap_alloc(nphfs_data.devfd, 999, 8192);
     memset(ptr, 0, 8192);
     struct nphfs_file_metadata root;
     root.filestat.st_ino = 999;
@@ -413,7 +413,7 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     root.filename="/";
 
     log_msg("\n Creating root");
-    memcpy(ptr,root,sizeof(struct nphfs_md));
+    memcpy(ptr,&root,sizeof(struct nphfs_file_metadata));
     log_msg("\n root created");
     return NPHFS_DATA;
 }
