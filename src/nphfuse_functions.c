@@ -224,7 +224,7 @@ int nphfuse_utime(const char *path, struct utimbuf *ubuf)
 int nphfuse_open(const char *path, struct fuse_file_info *fi)
 {
 
-    char fpath[PATH_MAX];
+    char fullpath[PATH_MAX];
     get_fullpath(fullpath,path);
 	int retval;
 
