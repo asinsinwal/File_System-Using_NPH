@@ -428,7 +428,7 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     }
     memcpy(ptr + sizeof(struct nphfs_file_metadata)+sizeof(struct dirent), &dirs, sizeof(struct dirent)*maxDirs);
 
-    nheap_unlock(nphfuse_data->devfd, 999);
+    npheap_unlock(nphfuse_data->devfd, 999);
     }
     return NPHFS_DATA;
     
