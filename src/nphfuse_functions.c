@@ -161,7 +161,7 @@ int nphfuse_mkdir(const char *path, mode_t mode)
         npheap_lock(nphfuse_data->devfd, offset);  
         //adding dirent
         dirArray[i].d_ino=offset;
-        memcpy(dirent[i].d_name,pathToken,strlen(pathToken));
+        memcpy(dirArray[i].d_name,pathToken,strlen(pathToken));
         //creating new object
         createObject(offset, pathToken, mode);
         npheap_unlock(nphfuse_data->devfd, offset);  
