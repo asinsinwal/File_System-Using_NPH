@@ -31,7 +31,7 @@
  * mount option is given.
  */
 
-//Assuming the root is stored at objectID 999 in npheap.
+//Assuming the rootmd is stored at objectID 999 in npheap.
 extern struct nphfuse_state *nphfuse_data;
 
 int nphfuse_getattr(const char *path, struct stat *stbuf)
@@ -396,27 +396,42 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     log_msg("\nnphfuse_init()\n");
     log_conn(conn);
     log_fuse_context(fuse_get_context());
+    int size = npheap_getsize(nphfuse_data->devfd, 999);
+    if(!size){
+    npheap_lock(nphfuse_data->devfd, 999);    
     void *ptr = npheap_alloc(nphfuse_data->devfd, 999, 8192);
     memset(ptr, 0, 8192);
-    struct nphfs_file_metadata root;
-    root.filestat.st_ino = 999;
-    root.filestat.st_dev =  nphfuse_data->devfd;
-    root.filestat.st_mode = S_IFDIR | 0755;
-    root.filestat.st_nlink = 2;
-    root.filestat.st_uid = getuid();
-    root.filestat.st_gid = getgid();
-    root.filestat.st_rdev = 0;
-    root.filestat.st_atime =time(NULL);
-    root.filestat.st_mtime =time(NULL);
-    root.filestat.st_ctime =time(NULL);
-    root.filestat.st_blksize = 8192; 
-    root.filestat.st_blocks = 1;
-    root.filename="/";
+    struct nphfs_file_metadata rootmdmd;
+    rootmd.filestat.st_ino = 999;
+    rootmd.filestat.st_dev =  nphfuse_data->devfd;
+    rootmd.filestat.st_mode = S_IFDIR | 0755;
+    rootmd.filestat.st_nlink = 2;
+    rootmd.filestat.st_uid = getuid();
+    rootmd.filestat.st_gid = getgid();
+    rootmd.filestat.st_rdev = 0;
+    rootmd.filestat.st_atime =time(NULL);
+    rootmd.filestat.st_mtime =time(NULL);
+    rootmd.filestat.st_ctime =time(NULL);
+    rootmd.filestat.st_blksize = 8192; 
+    rootmd.filestat.st_blocks = 1;
+    rootmd.filename="/";
+    log_msg("\n Creating rootmd metadata");
+    memcpy(ptr,&rootmd,sizeof(struct nphfs_file_metadata));
+    log_msg("\n rootmd metadata written");
 
-    log_msg("\n Creating root");
-    memcpy(ptr,&root,sizeof(struct nphfs_file_metadata));
-    log_msg("\n root created");
+    int maxDirs=(8192 -sizeof(struct nphfs_file_metadata))/sizeof(struct dirent)-sizeof(struct dirent);
+    struct dirent dirs[maxDirs] ;
+    int i;
+    for(i=0;i<maxDirs;i++)
+    {
+         dirs[i].d_ino = 0;
+    }
+    memcpy(ptr + sizeof(struct nphfs_file_metadata)+sizeof(struct dirent), &dirs, sizeof(struct dirent)*length);
+
+    nheap_unlock(nphfuse_data->devfd, 999);
+    }
     return NPHFS_DATA;
+    }
 }
 
 /**
