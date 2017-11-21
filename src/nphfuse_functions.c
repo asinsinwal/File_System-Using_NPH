@@ -56,6 +56,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
              dirArray[i].d_ino = 0;
         }
         while(pathToken)
+
         {
             memcpy(curr + sizeof(struct nphfs_file_metadata)+sizeof(struct dirent), &dirArray, sizeof(struct dirent)*maxDirs);
             tempOffset=-1;
@@ -260,7 +261,48 @@ int nphfuse_chmod(const char *path, mode_t mode)
 /** Change the owner and group of a file */
 int nphfuse_chown(const char *path, uid_t uid, gid_t gid)
 {
-        return -ENOENT;
+            void *curr;
+            char *pathToken;     
+            pathToken = strtok(path,"/");   
+            struct nphfs_file_metadata currmd;     
+            int tempOffset=999;
+            curr= npheap_alloc(nphfuse_data->devfd, tempOffset, 8192);
+            struct dirent dirArray[maxDirs] ;
+            int i;
+            for(i=0;i<maxDirs;i++)
+            {
+                 dirArray[i].d_ino = 0;
+            }
+            
+            while(pathToken)
+            {
+                memcpy(curr + sizeof(struct nphfs_file_metadata)+sizeof(struct dirent), &dirArray, sizeof(struct dirent)*maxDirs);
+                tempOffset=-1;
+                for(i=0;i<maxDirs;i++)
+                {
+                     if(strcmp(pathToken, dirArray[i].d_name)==0)
+                     {
+                         tempOffset = dirArray[i].d_ino;
+                         break;
+                     }                 
+                }
+                if(tempOffset!=-1)
+                {   
+                    curr= npheap_alloc(nphfuse_data->devfd, tempOffset, 8192);
+                    pathToken = strtok(NULL,"/");
+                }
+                else{
+                    break;
+                    return -ENOENT;
+                }
+            }
+            memcpy(&currmd, curr, sizeof(struct nphfs_file_metadata));
+            currmd.filestat.st_uid = uid;
+            currmd.filestat.st_gid = gid;
+            memcpy(curr, &currmd, sizeof(struct nphfs_file_metadata))
+            
+    
+        return 0;
 }
 
 /** Change the size of a file */
