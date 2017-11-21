@@ -401,7 +401,7 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     npheap_lock(nphfuse_data->devfd, 999);    
     void *ptr = npheap_alloc(nphfuse_data->devfd, 999, 8192);
     memset(ptr, 0, 8192);
-    struct nphfs_file_metadata rootmdmd;
+    struct nphfs_file_metadata rootmd;
     rootmd.filestat.st_ino = 999;
     rootmd.filestat.st_dev =  nphfuse_data->devfd;
     rootmd.filestat.st_mode = S_IFDIR | 0755;
@@ -426,12 +426,12 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     {
          dirs[i].d_ino = 0;
     }
-    memcpy(ptr + sizeof(struct nphfs_file_metadata)+sizeof(struct dirent), &dirs, sizeof(struct dirent)*length);
+    memcpy(ptr + sizeof(struct nphfs_file_metadata)+sizeof(struct dirent), &dirs, sizeof(struct dirent)*maxDirs);
 
     nheap_unlock(nphfuse_data->devfd, 999);
     }
     return NPHFS_DATA;
-    }
+    
 }
 
 /**
