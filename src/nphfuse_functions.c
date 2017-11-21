@@ -55,7 +55,7 @@ void get_fullpath(char fp[PATH_MAX],char *path)
     char *root_path="/";
     const char* s = getenv("HOME");
     strcpy(fp, s);
-    strncpy(fp, "/npheap", PATH_MAX);
+    strcpy(fp, "/npheap");
 
     printf("%s and fp is %s \n",s , fp);
 
