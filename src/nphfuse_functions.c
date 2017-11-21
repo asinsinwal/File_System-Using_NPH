@@ -1,10 +1,8 @@
 /*
   NPHeap File System
   Copyright (C) 2016 Hung-Wei Tseng, Ph.D. <hungwei_tseng@ncsu.edu>
-
   This program can be distributed under the terms of the GNU GPLv3.
   See the file COPYING.
-
   This code is derived from function prototypes found /usr/include/fuse/fuse.h
   Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
   His code is licensed under the LGPLv2.
@@ -14,40 +12,10 @@
   FUSE.  It was my first FUSE filesystem as I got to know the
   software; hopefully, the comments in this code will help people who
   follow later to get a gentler introduction.
-
 */
 
 #include "nphfuse.h"
 #include <npheap.h>
-#include "log.h"
-#include <unistd.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include <stdio.h>
-#include <ftw.h>
-
-
-void get_fullpath(char fp[PATH_MAX],char *path)
-{
-    char *root_path="/";
-    //root_path = str2md5(root_path, strlen(root_path));
-
-
-    if(strcmp(path,root_path)==0)
-    {
-        printf("Path not in root --> %s\n",path);
-        strcpy(path,"/");
-        strcpy(fp, NPHFS_DATA->device_name);
-        strncat(fp, path, PATH_MAX); 
-    }
-    else
-    {
-        printf("Path in root --> %s\n",path);
-        strcpy(fp, NPHFS_DATA->device_name);
-        strncat(fp, "/", PATH_MAX);
-        strncat(fp, path, PATH_MAX);
-    } 
-}
 
 ///////////////////////////////////////////////////////////
 //
@@ -62,24 +30,8 @@ void get_fullpath(char fp[PATH_MAX],char *path)
  */
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
-    log_msg("Into LS function\n");
-    printf("calling getattr on %s \t %s \n",path, stbuf);
-
-    char fullpath[PATH_MAX];
-    get_fullpath(fullpath, path);
-
-    int ret;
-    printf("Path is %s\n",path);
-    ret=stat(fullpath,stbuf);
-    printf("Fullpath is %s\n",fullpath);
+    return -ENOENT;
     
-    if(ret){
-        printf("No path found\n");
-        printf("dir: %s\n",path);
-        return -ENOENT;
-    }
-
-    return ret;
 }
 
 /** Read the target of a symbolic link
