@@ -406,17 +406,7 @@ int nphfuse_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi)
 
 int nphfuse_access(const char *path, int mask)
 {
-    printf("CALL ACCESS \n");
-
-    int retstat = 0;
-    char fpath[PATH_MAX];
-    get_fpath(fpath,path);
-
-    printf("ACCESS FPATH ===> %s\n", fpath);
-
-    retstat = access(fpath, mask);
-  
-    return retstat;
+    return 0;
 }
 
 /**
