@@ -6,9 +6,15 @@
 
   You may extend this file if necessary  
 */
+#include <sys/stat.h>
 
 struct nphfuse_state {
     FILE *logfile;
     char *device_name;
     int devfd;
 };
+
+struct nphfs_file_metadata {
+  stat filestat;
+  char *filename;
+}

@@ -16,6 +16,8 @@
 
 #include "nphfuse.h"
 #include <npheap.h>
+#include <unistd.h>
+#include <dirent.h>
 
 ///////////////////////////////////////////////////////////
 //
@@ -28,8 +30,17 @@
  * ignored.  The 'st_ino' field is ignored except if the 'use_ino'
  * mount option is given.
  */
+
+//Assuming the root is stored at objectID 999 in npheap.
+
+extern nphfuse_state nphfs_state;
+extern nphfuse_file_metadata nphfs_md;
+
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
+    if (path == "/")
+   
+
     return -ENOENT;
     
 }
@@ -387,7 +398,26 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     log_msg("\nnphfuse_init()\n");
     log_conn(conn);
     log_fuse_context(fuse_get_context());
-        
+    void *ptr = npheap_alloc(nphfs_state.devfd, 999, 8192);
+    memset(ptr, 0, 8192);
+    struct nphfs_md root;
+    root.filestat.st_ino = 999;
+    root.filestat.st_dev =  nphfs_state.devfd;
+    root.filestat.st_mode = S_IFDIR | 0755;
+    root.filestat.st_nlink = 2;
+    root.filestat.st_uid = getuid();
+    root.filestat.st_gid = getgid();
+    root.filestat.st_rdev = 0;
+    root.filestat.st_atime =time(NULL);
+    root.filestat.st_mtime =time(NULL);
+    root.filestat.st_ctime =time(NULL);
+    root.filestat.st_blksize = 8192; 
+    root.filestat.st_blocks = 1;
+    root.filename="/";
+
+    log_msg("\n Creating root");
+    memcpy(ptr,root,sizeof(struct nphfs_md));
+    log_msg("\n root created");
     return NPHFS_DATA;
 }
 
