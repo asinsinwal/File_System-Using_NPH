@@ -47,13 +47,13 @@ void get_fullpath(char fp[PATH_MAX],char *path)
     log_msg("Into getfullpath \n");
 
     if(set == 0){
-        system("mkdir /home/npheap");
+        system("mkdir $HOME/npheap");
         set = 1;
     }
     memset(fp,0,PATH_MAX);
 
     char *root_path="/";
-    strcpy(fp, "/home/npheap");
+    strcpy(fp, "$HOME/npheap");
 
     if(strcmp(path,root_path)==0)
     {
