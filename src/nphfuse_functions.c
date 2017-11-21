@@ -33,11 +33,53 @@
 
 //Assuming the rootmd is stored at objectID 999 in npheap.
 extern struct nphfuse_state *nphfuse_data;
+static int maxDirs;
 
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
+    void *curr;
     if (path == "/")
-   
+    {
+        curr= npheap_alloc(nphfuse_data->devfd, 999, 8192);
+        return 0;
+    }
+    else
+    {   
+        char *pathToken;     
+        pathToken = strtok(path,"/");        
+        int tempOffset=999;
+        curr= npheap_alloc(nphfuse_data->devfd, tempOffset, 8192);
+        struct dirent dirArray[maxDirs] ;
+        int i;
+        for(i=0;i<maxDirs;i++)
+        {
+             dirArray[i].d_ino = 0;
+        }
+        while(pathToken)
+        {
+            memcpy(curr + sizeof(struct nphfs_file_metadata)+sizeof(struct dirent), &dirArray, sizeof(struct dirent)*maxDirs);
+            tempOffset=-1;
+            for(i=0;i<maxDirs;i++)
+            {
+                 if(strcmp(pathToken, dirArray[i].d_name)==0)
+                 {
+                     tempOffset = dirArray[i].d_ino;
+                     break;
+                 }
+                 
+            }
+            if(tempOffset!=-1)
+            {   
+                curr= npheap_alloc(nphfuse_data->devfd, tempOffset, 8192);
+                pathToken = strtok(NULL,"/");
+            }
+        }
+        if(tempOffset!=-1)
+        {   
+            memcpy(stbuf, ((struct nphfs_file_metadata*)curr)->filestat, sizeof(struct stat));
+            return 0;
+        }
+    }
 
     return -ENOENT;
     
@@ -419,7 +461,7 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     memcpy(ptr,&rootmd,sizeof(struct nphfs_file_metadata));
     log_msg("\n rootmd metadata written");
 
-    int maxDirs=(8192 -sizeof(struct nphfs_file_metadata))/sizeof(struct dirent)-sizeof(struct dirent);
+    maxDirs=(8192 -sizeof(struct nphfs_file_metadata))/sizeof(struct dirent)-sizeof(struct dirent);
     struct dirent dirs[maxDirs] ;
     int i;
     for(i=0;i<maxDirs;i++)
