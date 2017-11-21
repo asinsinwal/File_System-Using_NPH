@@ -84,8 +84,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
     char fullpath[PATH_MAX];
     get_fullpath(fullpath,path);
-    int ret;
-    ret=stat(fpath,stbuf);
+    int retval;
     log_msg("Fullpath is %s \n", fullpath);
 
     retval = lstat(fullpath, stbuf);
