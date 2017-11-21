@@ -32,7 +32,8 @@
  */
 
 //Assuming the root is stored at objectID 999 in npheap.
-extern struct nphfuse_state *nphfs_data;
+extern struct nphfuse_state *nphfuse_data;
+
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
     if (path == "/")
@@ -395,11 +396,11 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     log_msg("\nnphfuse_init()\n");
     log_conn(conn);
     log_fuse_context(fuse_get_context());
-    void *ptr = npheap_alloc(nphfs_data->devfd, 999, 8192);
+    void *ptr = npheap_alloc(nphfuse_data->devfd, 999, 8192);
     memset(ptr, 0, 8192);
     struct nphfs_file_metadata root;
     root.filestat.st_ino = 999;
-    root.filestat.st_dev =  nphfs_data->devfd;
+    root.filestat.st_dev =  nphfuse_data->devfd;
     root.filestat.st_mode = S_IFDIR | 0755;
     root.filestat.st_nlink = 2;
     root.filestat.st_uid = getuid();
