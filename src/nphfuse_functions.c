@@ -38,7 +38,7 @@ int set;
 typedef struct listnode{
     char *filename;
     char *dirname;
-    _u64 offset;
+    __u64 offset;
     struct listnode *next;
 }llist;
 
