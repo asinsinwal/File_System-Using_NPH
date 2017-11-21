@@ -412,7 +412,7 @@ int nphfuse_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi)
 
 int nphfuse_access(const char *path, int mask)
 {
-    log_msg("Into access function \n")
+    log_msg("Into access function \n");
     int retval;
     
     char fullpath[PATH_MAX];
