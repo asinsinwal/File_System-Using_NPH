@@ -51,7 +51,8 @@ static npheap_store *getRootDirectory(void){
     return &(temp[0]);
 }
 
-//Getting fullpath
+
+//Get fullpath
 void get_fullpath(char fp[PATH_MAX],char *path)
 {
     log_msg("Into getfullpath \n");
@@ -600,6 +601,7 @@ int nphfuse_releasedir(const char *path, struct fuse_file_info *fi)
 int nphfuse_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi)
 {
     log_msg("Into fsyncdir function\n");
+
     return -1;
 }
 
@@ -715,6 +717,7 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     initialAllocationNPheap();
     return NPHFS_DATA;
 }
+
 
 
 /**
