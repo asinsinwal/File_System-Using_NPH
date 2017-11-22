@@ -40,7 +40,7 @@ static npheap_store *getRootDirectory(void){
     temp = (npheap_store *)npheap_alloc(npheap_fd, 2, npheap_getsize(npheap_fd, 2));
 
     if(temp == NULL){
-        log_msg("Root directory was not found.\n")
+        log_msg("Root directory was not found.\n");
         return NULL;
     }
     log_msg("Root directory found. \n");
@@ -437,7 +437,7 @@ static void initialAllocationNPheap(void){
     for(offset = 2; offset < 52; offset++){
         if(npheap_getsize(npheap_fd, offset)){
             block_dt = npheap_alloc(npheap_fd, offset, 8192);
-            memset(block_dt, 0, npheap_getsize(npheap, offset));
+            memset(block_dt, 0, npheap_getsize(npheap_fd, offset));
         }
     }
 
