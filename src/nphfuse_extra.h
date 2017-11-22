@@ -22,7 +22,7 @@ struct nphfuse_state {
 typedef struct {
   char filename[MAX];
   char dirname[MAX];
-  __u64 offset;
+  uint64_t offset;
   struct stat mystat;
 }npheap_store;
 
