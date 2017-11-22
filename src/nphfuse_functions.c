@@ -36,7 +36,7 @@ uint64_t data_off = 18000;
 static npheap_store *getRootDirectory(void){
     npheap_store *temp = NULL;
 
-    lob_msg("Get the root directory. \n");
+    log_msg("Get the root directory. \n");
     temp = (npheap_store *)npheap_alloc(npheap_fd, 2, npheap_getsize(npheap_fd, 2));
 
     if(temp == NULL){
