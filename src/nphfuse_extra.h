@@ -6,9 +6,22 @@
 
   You may extend this file if necessary  
 */
+#include <sys/stat.h>
+#define MAX   54
+#define BLOCK_SIZE   8192
 
 struct nphfuse_state {
-    FILE *logfile;
-    char *device_name;
-    int devfd;
+  FILE *logfile;
+  char *device_name;
+  int devfd;
 };
+
+
+typedef struct {
+  char filename[MAX];
+  char dirname[MAX];
+  __u64 offset;
+  struct stat mystat;
+}npheap_store;
+
+#define TOTAL_BLOCKS  (BLOCK_SIZE/sizeof(npheap_store))
