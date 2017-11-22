@@ -432,7 +432,7 @@ static void initialAllocationNPheap(void){
         memset(block_dt,0, npheap_getsize(npheap_fd, offset));
     }
 
-    log_msg("Allocation done for npheap.\n");
+    log_msg("Allocation done for npheap %d.\n", npheap_getsize(npheap_fd, offset));
 
     for(offset = 2; offset < 52; offset++){
         if(npheap_getsize(npheap_fd, offset)){
@@ -442,7 +442,7 @@ static void initialAllocationNPheap(void){
     }
 
     head_dir = getRootDirectory();
-    log_msg("Into Nphfuse init function \n");
+    log_msg("Assigning stat values\n");
     strcpy(head_dir->dirname, "/");
     strcpy(head_dir->filename, "/");
     head_dir->mystat.st_ino = inode_off;
