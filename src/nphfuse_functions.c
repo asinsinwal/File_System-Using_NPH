@@ -19,18 +19,21 @@
 
 #include "nphfuse.h"
 #include <npheap.h>
-#include <sys/time.h>
+#include <ctype.h>
+#include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <fuse.h>
+#include <libgen.h>
+#include <limits.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include "log.h"
 
-#define BLOCK_SIZE 8192
-extern struct nphfuse_state *nphfuse_data;
-
-int npheap_fd = 1;
-uint64_t inode_off = 3;
-uint64_t data_off = 18000;
+int set;
 
 //Getting the root directory
 static npheap_store *getRootDirectory(void){
@@ -47,6 +50,38 @@ static npheap_store *getRootDirectory(void){
     log_msg("Root directory created. \n");
     return &(temp[0]);
 }
+
+//Getting fullpath
+void get_fullpath(char fp[PATH_MAX],char *path)
+{
+    log_msg("Into getfullpath \n");
+
+    if(set == 0){
+        system("mkdir $HOME/npheap");
+        set = 1;
+    }
+    memset(fp,0,PATH_MAX);
+
+    char *root_path="/";
+    const char* s = getenv("HOME");
+    strcpy(fp, s);
+    strcat(fp, "/npheap");
+
+    printf("%s and fp is %s \n",s , fp);
+
+    if(strcmp(path,root_path)==0)
+    {
+        strcpy(path,"/");
+        strncat(fp, path, PATH_MAX); 
+    }
+    else
+    {
+        strncat(fp, path, PATH_MAX);
+    }
+
+    printf("Fullpath is %s \n", fp);
+}
+
 ///////////////////////////////////////////////////////////
 //
 // Prototypes for all these functions, and the C-style comments,
@@ -60,8 +95,21 @@ static npheap_store *getRootDirectory(void){
  */
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
-    return -ENOENT;
+    log_msg("Into getattr function \n");
     
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+
+    int retval;
+    log_msg("Fullpath is %s \n", fullpath);
+
+    retval = lstat(fullpath, stbuf);
+
+    if(retval){
+        printf("[%s] doesn't exist.!!!\n",path);
+        return -ENOENT;
+    }
+    return retval;
 }
 
 /** Read the target of a symbolic link
@@ -78,7 +126,20 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
 // nphfuse_readlink() code by Bernardo F Costa (thanks!)
 int nphfuse_readlink(const char *path, char *link, size_t size)
 {
-    return -1;
+    log_msg("Into readlink \n");
+
+    int retval;
+    char fullpath[PATH_MAX];
+
+    get_fullpath(fullpath,path);
+
+    retval = readlink(fullpath, link, size - 1);
+    if (retval >= 0) {
+        link[retval] = '\0';
+        retval = 0;
+    }
+    
+    return retval;
 }
 
 /** Create a file node
@@ -88,25 +149,61 @@ int nphfuse_readlink(const char *path, char *link, size_t size)
  */
 int nphfuse_mknod(const char *path, mode_t mode, dev_t dev)
 {
-    return -ENOENT;
+    log_msg("Into mknod function");
+
+    int retval;
+
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+
+    if (S_ISREG(mode)) {
+        retval = open(fullpath, O_CREAT | O_EXCL | O_WRONLY, mode);
+        if (retval >= 0)
+            retval = close(retval);
+    } 
+    else if (S_ISFIFO(mode))
+        retval = mkfifo(fullpath, mode);
+    else
+        retval =  mknod(fullpath, mode, dev);
+    
+    return retval;
 }
 
 /** Create a directory */
 int nphfuse_mkdir(const char *path, mode_t mode)
 {
-    return -ENOENT;
+    log_msg("Into mkdir function\n");
+
+    int retval;
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+
+    retval=mkdir(fullpath, mode);
+
+    return retval;
 }
 
 /** Remove a file */
 int nphfuse_unlink(const char *path)
 {
-    return -1;
+    log_msg("Into unlink function\n");
+
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+    int retval = unlink(fullpath);
+
+    return retval;
 }
 
 /** Remove a directory */
 int nphfuse_rmdir(const char *path)
 {
-    return -1;
+    log_msg("Into rmdir function\n");
+
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+    int retval = -rmdir(fullpath);
+    return retval;
 }
 
 /** Create a symbolic link */
@@ -116,44 +213,86 @@ int nphfuse_rmdir(const char *path)
 // unaltered, but insert the link into the mounted directory.
 int nphfuse_symlink(const char *path, const char *link)
 {
-    return -1;
+    log_msg("Into symlink function\n");
+    
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+    int retval = symlink(path, fullpath);
+    return retval;
 }
 
 /** Rename a file */
 // both path and newpath are fs-relative
 int nphfuse_rename(const char *path, const char *newpath)
 {
-    return -1;
+    log_msg("Into rename function\n");
+
+    char fullpath[PATH_MAX];
+    char fullnewpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+    get_fullpath(fullnewpath,newpath);
+    int retval = rename(fullpath, fullnewpath);
+    return retval;
 }
 
 /** Create a hard link to a file */
 int nphfuse_link(const char *path, const char *newpath)
 {
-    return -1;
+    log_msg("Into link function\n");
+
+    char fullpath[PATH_MAX];
+    char fullnewpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+    get_fullpath(fullnewpath,newpath);
+    int retval = link(fullpath, fullnewpath);
+    return retval;
 }
 
 /** Change the permission bits of a file */
 int nphfuse_chmod(const char *path, mode_t mode)
 {
-        return -ENOENT;
+    log_msg("Into chmod function\n");
+
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+
+    int retval;
+
+	retval = chmod(fullpath, mode);
+	if (retval == -1)
+		return -errno;
+
+	return 0;
 }
 
 /** Change the owner and group of a file */
 int nphfuse_chown(const char *path, uid_t uid, gid_t gid)
 {
-        return -ENOENT;
+    log_msg("Into chown function\n");
+
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+    return lchown(fullpath, uid, gid);
 }
 
 /** Change the size of a file */
 int nphfuse_truncate(const char *path, off_t newsize)
 {
-        return -ENOENT;
+    return -ENOENT;
 }
 
 /** Change the access and/or modification times of a file */
 int nphfuse_utime(const char *path, struct utimbuf *ubuf)
 {
-        return -ENOENT;
+    log_msg("Into utime function\n");
+
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+
+    int retval=utime(fullpath, ubuf);
+
+    printf("Actual time %d\n", ubuf->actime);
+    return retval;
 }
 
 /** File open operation
@@ -168,11 +307,19 @@ int nphfuse_utime(const char *path, struct utimbuf *ubuf)
  */
 int nphfuse_open(const char *path, struct fuse_file_info *fi)
 {
-    if ((fi->flags & O_ACCMODE) != O_RDONLY)
-        return -EACCES;
+    log_msg("Into open function\n");
 
-    return -ENOENT;
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+	int retval;
 
+	retval = open(fullpath, fi->flags);
+	if (retval == -1)
+		return -errno;
+
+    fi->fh=retval;
+    
+    return 0;
 }
 
 /** Read data from an open file
@@ -193,7 +340,14 @@ int nphfuse_open(const char *path, struct fuse_file_info *fi)
 // returned by read.
 int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
-    return -ENOENT;
+    log_msg("Into read function\n");
+    
+	int retval;
+	retval = pread(fi->fh, buf, size, offset);
+	if (retval == -1)
+        retval = -errno;
+
+	return retval;
 }
 
 /** Write data to an open file
@@ -206,7 +360,15 @@ int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct 
 int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
 	     struct fuse_file_info *fi)
 {
-    return -ENOENT;
+    log_msg("Into write function\n");
+    
+    int retval;
+    retval = pwrite(fi->fh, buf, size, offset);
+    if (retval == -1)
+        retval = -errno;
+    
+        // close(fd);
+    return retval;
 }
 
 /** Get file system statistics
@@ -218,7 +380,13 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
  */
 int nphfuse_statfs(const char *path, struct statvfs *statv)
 {
-    return -1;
+    log_msg("Into statfs function\n");
+    int retval = 0;
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+    retval = statvfs(fullpath, statv);
+
+    return retval;
 }
 
 /** Possibly flush cached data
@@ -248,6 +416,7 @@ int nphfuse_statfs(const char *path, struct statvfs *statv)
 // this is a no-op in NPHFS.  It just logs the call and returns success
 int nphfuse_flush(const char *path, struct fuse_file_info *fi)
 {
+    log_msg("Into flush function\n");
     log_msg("\nnphfuse_flush(path=\"%s\", fi=0x%08x)\n", path, fi);
     // no need to get fpath on this one, since I work from fi->fh not the path
     log_fi(fi);
@@ -271,7 +440,9 @@ int nphfuse_flush(const char *path, struct fuse_file_info *fi)
  */
 int nphfuse_release(const char *path, struct fuse_file_info *fi)
 {
-    return 0;
+    log_msg("Into release function\n");
+    int retval = close(fi->fh);
+    return retval;
 }
 
 /** Synchronize file contents
@@ -283,32 +454,50 @@ int nphfuse_release(const char *path, struct fuse_file_info *fi)
  */
 int nphfuse_fsync(const char *path, int datasync, struct fuse_file_info *fi)
 {
-    return -1;
+    log_msg("Into fsync function\n");
+    int retval = fsync(fi->fh);
+    return retval;
 }
 
 #ifdef HAVE_SYS_XATTR_H
 /** Set extended attributes */
 int nphfuse_setxattr(const char *path, const char *name, const char *value, size_t size, int flags)
 {
-    return -61;
+    log_msg("Into setxattr function\n");
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+    int retval = lsetxattr(fullpath, name, value, size, flags);
+    return retval;
 }
 
 /** Get extended attributes */
 int nphfuse_getxattr(const char *path, const char *name, char *value, size_t size)
 {
-    return -61;
+    log_msg("Into getxattr function\n");
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+    int retval = lgetxattr(fullpath, name, value, size);
+    return retval;
 }
 
 /** List extended attributes */
 int nphfuse_listxattr(const char *path, char *list, size_t size)
 {
-    return -61;
+    log_msg("Into listxattr function\n");
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+    int retval = llistxattr(fullpath, list, size);
+    return retval;
 }
 
 /** Remove extended attributes */
 int nphfuse_removexattr(const char *path, const char *name)
 {
-    return -61;
+    log_msg("Into removexattr function\n");
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+    int retval = lremovexattr(fullpath, name);
+    return retval;
 }
 #endif
 
@@ -321,7 +510,24 @@ int nphfuse_removexattr(const char *path, const char *name)
  */
 int nphfuse_opendir(const char *path, struct fuse_file_info *fi)
 {
-    return -ENOENT;
+    log_msg("Into opendir function\n");
+    
+    DIR *dirp;
+    int retval = 0;
+    char fullpath[PATH_MAX];
+    
+    get_fullpath(fullpath,path);
+    
+    dirp = opendir(fullpath);
+    
+    if (dirp==NULL)
+    {
+        printf("Error thrown\n");
+        return retval;
+    }
+    
+    fi->fh = (intptr_t) dirp;
+    return retval;
 }
 
 /** Read directory
@@ -347,15 +553,38 @@ int nphfuse_opendir(const char *path, struct fuse_file_info *fi)
  */
 
 int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
-	       struct fuse_file_info *fi)
+           struct fuse_file_info *fi)
 {
-    return -ENOENT;
+    log_msg("Into readdir function\n");
+
+    int retval = 0;
+    DIR *dirp;
+
+    struct dirent *dent;
+   
+    dirp = (DIR *) (uintptr_t) fi->fh;
+    dent = readdir(dirp);
+
+    if (dent == 0) {
+	    return retval;
+    }
+
+    do {
+	    if (filler(buf, dent->d_name, NULL, 0) != 0) {
+		    printf("Error thrown \n");
+	        return -ENOMEM;
+	    }
+    } while ((dent = readdir(dirp)) != NULL);
+    
+    return retval;
 }
 
-/** Release directory
- */
+/** Release directory */
 int nphfuse_releasedir(const char *path, struct fuse_file_info *fi)
 {
+    log_msg("Into releasedir function\n");
+
+    closedir((DIR *) (uintptr_t) fi->fh);
     return 0;
 }
 
@@ -370,13 +599,22 @@ int nphfuse_releasedir(const char *path, struct fuse_file_info *fi)
 // happens to be a directory? ??? 
 int nphfuse_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi)
 {
-    return 0;
+    log_msg("Into fsyncdir function\n");
+    return -1;
 }
 
 int nphfuse_access(const char *path, int mask)
 {
-    return 0;
-//    return -1;
+    log_msg("Into access function \n");
+    int retval;
+    
+    char fullpath[PATH_MAX];
+    get_fullpath(fullpath,path);
+
+    printf("Fullpath in access is %s\n", fullpath );
+    retval = access(fullpath, mask);
+  
+    return retval;
 }
 
 /**
@@ -393,7 +631,10 @@ int nphfuse_access(const char *path, int mask)
  */
 int nphfuse_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi)
 {
-    return -1;
+    log_msg("Into ftruncate function \n");
+    int retval = 0;
+    retval = ftruncate(fi->fh, offset);
+    return retval;
 }
 
 /**
@@ -409,7 +650,10 @@ int nphfuse_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi)
  */
 int nphfuse_fgetattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi)
 {
-        return -ENOENT;
+    log_msg("Into fgetattr function \n");
+    int retval = nphfuse_getattr(path, statbuf);
+    
+  	return retval;
 }
 
 //Allocate the superblock and the inode
@@ -458,15 +702,20 @@ static void initialAllocationNPheap(void){
 }
 
 
+
 void *nphfuse_init(struct fuse_conn_info *conn)
 {
     log_msg("\nnphfuse_init()\n");
     log_conn(conn);
     log_fuse_context(fuse_get_context());
-    initialAllocationNPheap();
+    
+    log_msg("Into INIT function \n");
 
+    set = 0;
+    initialAllocationNPheap();
     return NPHFS_DATA;
 }
+
 
 /**
  * Clean up filesystem
