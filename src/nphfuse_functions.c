@@ -43,8 +43,9 @@ static npheap_store *getRootDirectory(void){
         log_msg("Root directory was not found.\n");
         return NULL;
     }
-    log_msg("Root directory found. \n");
-    return &(temp[0]);
+
+    log_msg("Root directory created. \n");
+    return &temp;
 }
 ///////////////////////////////////////////////////////////
 //
