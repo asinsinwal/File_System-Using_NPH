@@ -32,24 +32,6 @@ int npheap_fd = 1;
 uint64_t inode_off = 3;
 uint64_t data_off = 18000;
 
-
-//Check for the access to the file
-bool accessCheck(npheap_store *inode_det, int mode){
-    if(!inode_det){
-        return false;
-    }
-
-    //Check for the super user
-    if(getuid() == 0 || getgit() == 0){
-        return true;
-    }//Check for the matched user id or group id
-    else if( inode_det->mystat.st_uid == getuid() || inode_det->mystat.st_gid == getgid()){
-        return true;
-    }
-
-    return false;
-}
-
 //Getting the root directory
 static npheap_store *getRootDirectory(void){
     npheap_store *temp = NULL;
