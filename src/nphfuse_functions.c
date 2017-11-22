@@ -37,7 +37,7 @@ static npheap_store *getRootDirectory(void){
     npheap_store *temp = NULL;
 
     log_msg("Get the root directory. \n");
-    temp = (npheap_store *)npheap_alloc(npheap_fd, 2, npheap_getsize(npheap_fd, 2));
+    temp = (npheap_store *)npheap_alloc(npheap_fd, 2, BLOCK_SIZE);
 
     if(temp == NULL){
         log_msg("Root directory was not found.\n");
@@ -45,7 +45,7 @@ static npheap_store *getRootDirectory(void){
     }
 
     log_msg("Root directory created. \n");
-    return &temp;
+    return &(temp[0]);
 }
 ///////////////////////////////////////////////////////////
 //
