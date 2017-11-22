@@ -7,7 +7,8 @@
   You may extend this file if necessary  
 */
 #include <sys/stat.h>
-#include <types.h>
+#include <stdint.h>
+
 #define MAX   54
 #define BLOCK_SIZE   8192
 
