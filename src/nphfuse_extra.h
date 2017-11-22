@@ -6,6 +6,13 @@
 
   You may extend this file if necessary  
 */
+
+/*
+TEAM MEMBERS:
+1. Animesh Sinsinwal    assinsin
+2. Sayali Godbole       ssgodbol
+3. Sameer Poudwal       spoudwa
+*/
 #include <sys/stat.h>
 #include <stdint.h>
 
