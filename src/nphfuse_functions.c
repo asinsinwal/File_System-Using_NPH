@@ -24,7 +24,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
-#include <types.h>
 
 #define BLOCK_SIZE 8192
 extern struct nphfuse_state *nphfuse_data;
