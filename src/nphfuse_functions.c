@@ -24,13 +24,14 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include <types.h>
 
 #define BLOCK_SIZE 8192
 extern struct nphfuse_state *nphfuse_data;
 
 int npheap_fd = 1;
-__u64 inode_off = 3;
-__u64 data_off = 18000;
+uint64_t inode_off = 3;
+uint64_t data_off = 18000;
 
 
 //Check for the access to the file
@@ -431,7 +432,7 @@ int nphfuse_fgetattr(const char *path, struct stat *statbuf, struct fuse_file_in
 
 //Allocate the superblock and the inode
 static void initialAllocationNPheap(void){
-    __u64 offset = 1;
+    uint64_t offset = 1;
     npheap_store *npheap_dt = NULL;
     char *block_dt = NULL;
     npheap_store *head_dir = NULL;
