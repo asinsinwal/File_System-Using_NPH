@@ -34,6 +34,13 @@
 #include "log.h"
 
 int set;
+#define BLOCK_SIZE 8192
+extern struct nphfuse_state *nphfuse_data;
+
+int npheap_fd = 1;
+uint64_t inode_off = 3;
+uint64_t data_off = 18000;
+
 
 //Getting the root directory
 static npheap_store *getRootDirectory(void){
