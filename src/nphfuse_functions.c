@@ -19,36 +19,34 @@
 
 #include "nphfuse.h"
 #include <npheap.h>
-#include "log.h"
-#include <unistd.h>
-#include <sys/types.h>
-#include <dirent.h>
+#include <sys/time.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdio.h>
-#include <ftw.h>
 
+#define BLOCK_SIZE 8192
+extern struct nphfuse_state *nphfuse_data;
 
-void get_fullpath(char fp[PATH_MAX],char *path)
-{
-    char *root_path="/";
-    //root_path = str2md5(root_path, strlen(root_path));
+int npheap_fd = 1;
+uint64_t inode_off = 3;
+uint64_t data_off = 18000;
 
+//Getting the root directory
+static npheap_store *getRootDirectory(void){
+    npheap_store *temp = NULL;
 
-    if(strcmp(path,root_path)==0)
-    {
-        printf("Path not in root --> %s\n",path);
-        strcpy(path,"/");
-        strcpy(fp, NPHFS_DATA->device_name);
-        strncat(fp, path, PATH_MAX); 
+    log_msg("Get the root directory. \n");
+    temp = (npheap_store *)npheap_alloc(npheap_fd, 2, BLOCK_SIZE);
+
+    if(temp == NULL){
+        log_msg("Root directory was not found.\n");
+        return NULL;
     }
-    else
-    {
-        printf("Path in root --> %s\n",path);
-        strcpy(fp, NPHFS_DATA->device_name);
-        strncat(fp, "/", PATH_MAX);
-        strncat(fp, path, PATH_MAX);
-    } 
-}
 
+    log_msg("Root directory created. \n");
+    return &(temp[0]);
+}
 ///////////////////////////////////////////////////////////
 //
 // Prototypes for all these functions, and the C-style comments,
@@ -62,24 +60,8 @@ void get_fullpath(char fp[PATH_MAX],char *path)
  */
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
-    log_msg("Into LS function\n");
-    printf("calling getattr on %s \t %s \n",path, stbuf);
-
-    char fullpath[PATH_MAX];
-    get_fullpath(fullpath, path);
-
-    int ret;
-    printf("Path is %s\n",path);
-    ret=stat(fullpath,stbuf);
-    printf("Fullpath is %s\n",fullpath);
+    return -ENOENT;
     
-    if(ret){
-        printf("No path found\n");
-        printf("dir: %s\n",path);
-        return -ENOENT;
-    }
-
-    return ret;
 }
 
 /** Read the target of a symbolic link
@@ -430,12 +412,59 @@ int nphfuse_fgetattr(const char *path, struct stat *statbuf, struct fuse_file_in
         return -ENOENT;
 }
 
+//Allocate the superblock and the inode
+static void initialAllocationNPheap(void){
+    uint64_t offset = 1;
+    npheap_store *npheap_dt = NULL;
+    char *block_dt = NULL;
+    npheap_store *head_dir = NULL;
+
+
+    npheap_fd = open(nphfuse_data->device_name, O_RDWR);
+
+    if(npheap_getsize(npheap_fd, offset) == 0){
+        log_msg("Allocating superblock.!\n");
+        block_dt = (char *)npheap_alloc(npheap_fd,offset, 8192);
+
+        if(block_dt == NULL){
+            log_msg("Allocation of superblock failed.\n");
+            return;
+        }
+        memset(block_dt,0, npheap_getsize(npheap_fd, offset));
+    }
+
+    log_msg("Allocation done for npheap %d.\n", npheap_getsize(npheap_fd, offset));
+
+    for(offset = 2; offset < 52; offset++){
+        if(npheap_getsize(npheap_fd, offset)){
+            block_dt = npheap_alloc(npheap_fd, offset, 8192);
+            memset(block_dt, 0, npheap_getsize(npheap_fd, offset));
+        }
+    }
+
+    head_dir = getRootDirectory();
+    log_msg("Assigning stat values\n");
+    strcpy(head_dir->dirname, "/");
+    strcpy(head_dir->filename, "/");
+    head_dir->mystat.st_ino = inode_off;
+    inode_off++;
+    head_dir->mystat.st_mode = S_IFDIR | 0755;
+    head_dir->mystat.st_nlink = 2;
+    head_dir->mystat.st_size = npheap_getsize(npheap_fd,2);
+    head_dir->mystat.st_uid = getuid();
+    head_dir->mystat.st_gid = getgid();
+
+    return;
+}
+
+
 void *nphfuse_init(struct fuse_conn_info *conn)
 {
     log_msg("\nnphfuse_init()\n");
     log_conn(conn);
     log_fuse_context(fuse_get_context());
-        
+    initialAllocationNPheap();
+
     return NPHFS_DATA;
 }
 
