@@ -155,6 +155,58 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev)
 /** Create a directory */
 int nphfuse_mkdir(const char *path, mode_t mode)
 {
+    char *filename, *dir;
+    split_path_file(&dir,&filename,path);
+    struct timeval currTime;
+    npheap_store *temp = NULL;
+    __u64       offset = 0;
+    __u64       index = 0;
+    __u64       found = -1;
+    for(offset = 2; offset < 52; offset++){
+        temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
+        if(temp==NULL)
+        {
+            log_msg("NPheap alloc failed for offset : %d",offset);
+        }
+        for (index = 0; index < 32; index++)
+        {
+            if ((strcmp (temp[index].dirname[0], '\0')) &&
+                (strcmp (temp[index].filename[0], '\0')))
+            {
+                /* Entry found in inode block */
+                found=index;
+                break;
+            }
+        }
+        if(found!=-1)
+        {
+            break;
+        }
+    }
+    if(found != -1)
+    {
+        strcpy(temp[index].dirname, dir);
+        strcpy(temp[index].filename, filename);
+        temp[index].mystat.st_ino = inode_off;
+        inode_off++;
+        temp[index].mystat.st_mode = S_IFDIR | mode;
+        temp[index].mystat.st_nlink = 2;
+        temp[index].mystat.st_size = BLOCK_SIZE;
+        temp[index].mystat.st_uid = getuid();
+        temp[index].mystat.st_gid = getgid();
+        gettimeofday(&currTime, NULL);
+        pInodeInfo->fstat.st_atime = currTime.tv_sec;
+        pInodeInfo->fstat.st_mtime = currTime.tv_sec;
+        pInodeInfo->fstat.st_ctime = currTime.tv_sec;
+        return 0;
+    }
+    else
+    {
+        log_msg("Directory not found. \n");
+        return -ENOENT;    
+    }
+}
+
     return -ENOENT;
 }
 
