@@ -67,6 +67,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
     log_msg("Searching dir entry: %s", dir);
     if(strcmp (path,"/")==0)
     {
+        log_msg("Callling getRootDirectory()");
         return getRootDirectory();
     }
     __u64       offset = 0;
