@@ -68,7 +68,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
     if(strcmp (path,"/")==0)
     {
         log_msg("Callling getRootDirectory()");
-        if(getRootDirectory()=NULL)
+        if(getRootDirectory()==NULL)
         {
             log_msg("Root directory not found. \n");
             return -ENOENT;
@@ -106,7 +106,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
     if(found != -1)
     {
         log_msg("Directory found. \n");
-        memcpy (stbuf, &temp[found]->mystat, sizeof(struct stat));
+        memcpy (stbuf, &temp[found].mystat, sizeof(struct stat));
         return 0;
     }
     else
