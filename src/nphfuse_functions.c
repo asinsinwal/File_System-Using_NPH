@@ -185,18 +185,18 @@ int nphfuse_mkdir(const char *path, mode_t mode)
     }
     if(found != -1)
     {
-        strcpy(temp[index].dirname, dir);
-        strcpy(temp[index].filename, filename);
-        temp[index].mystat.st_ino = 1;
-        temp[index].mystat.st_mode = S_IFDIR | mode;
-        temp[index].mystat.st_nlink = 1;
-        temp[index].mystat.st_size = BLOCK_SIZE;
-        temp[index].mystat.st_uid = getuid();
-        temp[index].mystat.st_gid = getgid();
+        strcpy(temp[found].dirname, dir);
+        strcpy(temp[found].filename, filename);
+        temp[found].mystat.st_ino = 1;
+        temp[found].mystat.st_mode = S_IFDIR | mode;
+        temp[found].mystat.st_nlink = 1;
+        temp[found].mystat.st_size = BLOCK_SIZE;
+        temp[found].mystat.st_uid = getuid();
+        temp[found].mystat.st_gid = getgid();
         gettimeofday(&currTime, NULL);
-        temp[index].mystat.st_atime = currTime.tv_sec;
-        temp[index].mystat.st_mtime = currTime.tv_sec;
-        temp[index].mystat.st_ctime = currTime.tv_sec;
+        temp[found].mystat.st_atime = currTime.tv_sec;
+        temp[found].mystat.st_mtime = currTime.tv_sec;
+        temp[found].mystat.st_ctime = currTime.tv_sec;
         return 0;
     }
     else
@@ -248,8 +248,10 @@ int nphfuse_rmdir(const char *path)
     if(found != -1)
     {
         log_msg("Directory found. \n");
-        memset(&temp[index], 0, sizeof(struct npheap_store));
-        log_msg("Directory deleted \n")
+        temp[found].filename[0] = '\0';
+        temp[found].dirname[0] = '\0';
+        memset(&temp[found].mystat, 0, sizeof(struct stat));
+        log_msg("Directory deleted \n");
         return 0;
     }
     else
