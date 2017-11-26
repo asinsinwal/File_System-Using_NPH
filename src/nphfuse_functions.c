@@ -61,7 +61,7 @@ static npheap_store *getRootDirectory(void){
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
     char *filename, *dir;
-    split_path_file(dir,filename,path);
+    split_path_file(&dir,&filename,path);
     npheap_store *temp = NULL;
     
     log_msg("Searching dir entry: %s", dir);
