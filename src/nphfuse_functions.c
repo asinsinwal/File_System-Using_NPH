@@ -187,10 +187,9 @@ int nphfuse_mkdir(const char *path, mode_t mode)
     {
         strcpy(temp[index].dirname, dir);
         strcpy(temp[index].filename, filename);
-        temp[index].mystat.st_ino = inode_off;
-        inode_off++;
+        temp[index].mystat.st_ino = 1;
         temp[index].mystat.st_mode = S_IFDIR | mode;
-        temp[index].mystat.st_nlink = 2;
+        temp[index].mystat.st_nlink = 1;
         temp[index].mystat.st_size = BLOCK_SIZE;
         temp[index].mystat.st_uid = getuid();
         temp[index].mystat.st_gid = getgid();
