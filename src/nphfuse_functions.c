@@ -217,6 +217,46 @@ int nphfuse_unlink(const char *path)
 /** Remove a directory */
 int nphfuse_rmdir(const char *path)
 {
+    char *filename, *dir;
+    split_path_file(&dir,&filename,path);
+    npheap_store *temp;
+
+    __u64       offset = 0;
+    __u64       index = 0;
+    __u64       found = -1;
+    for(offset = 2; offset < 52; offset++){
+        temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
+        if(temp==NULL)
+        {
+            log_msg("NPheap alloc failed for offset : %d",offset);
+        }
+        for (index = 0; index < 32; index++)
+        {
+            if ((!strcmp (temp[index].dirname, dir)) &&
+                (!strcmp (temp[index].filename, filename)))
+            {
+                /* Entry found in inode block */
+                found=index;
+                break;
+            }
+        }
+        if(found!=-1)
+        {
+            break;
+        }
+    }
+    if(found != -1)
+    {
+        log_msg("Directory found. \n");
+        memset(&temp[index], 0, sizeof(struct npheap_store));
+        log_msg("Directory deleted \n")
+        return 0;
+    }
+    else
+    {
+        log_msg("Directory not found. \n");
+        return -ENOENT;    
+    }
     return -1;
 }
 
