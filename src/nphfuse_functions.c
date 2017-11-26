@@ -68,10 +68,20 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
     if(strcmp (path,"/")==0)
     {
         log_msg("Callling getRootDirectory()");
-        return getRootDirectory();
+        if(getRootDirectory()=NULL)
+        {
+            log_msg("Root directory not found. \n");
+            return -ENOENT;
+        }
+        else
+        {
+            log_msg("Root directory not found. \n");
+            return 0;
+        }
     }
     __u64       offset = 0;
     __u64       index = 0;
+    __u64       found = -1;
     for(offset = 2; offset < 52; offset++){
         temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
         if(temp==NULL)
@@ -84,13 +94,26 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
                 (!strcmp (temp[index].filename, filename)))
             {
                 /* Entry found in inode block */
-                return &temp[index];
+                found=index;
+                break;
             }
         }
+        if(found!=-1)
+        {
+            break;
+        }
     }
-
-    
-    return ;    
+    if(found != -1)
+    {
+        log_msg("Directory found. \n");
+        memcpy (stbuf, &temp[found]->mystat, sizeof(struct stat));
+        return 0;
+    }
+    else
+    {
+        log_msg("Directory not found. \n");
+        return -ENOENT;    
+    }
 }
 
 void split_path_file(char** dir, char** filename, char *path) {
