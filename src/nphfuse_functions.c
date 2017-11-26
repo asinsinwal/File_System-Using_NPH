@@ -60,8 +60,69 @@ static npheap_store *getRootDirectory(void){
  */
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
-    return -ENOENT;
+    char *filename, *dir;
+    split_path_file(&dir,&filename,path);
+    npheap_store *temp = NULL;
     
+    log_msg("Searching dir entry: %s", dir);
+    if(strcmp (path,"/")==0)
+    {
+        log_msg("Callling getRootDirectory()");
+        if(getRootDirectory()=NULL)
+        {
+            log_msg("Root directory not found. \n");
+            return -ENOENT;
+        }
+        else
+        {
+            log_msg("Root directory not found. \n");
+            return 0;
+        }
+    }
+    __u64       offset = 0;
+    __u64       index = 0;
+    __u64       found = -1;
+    for(offset = 2; offset < 52; offset++){
+        temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
+        if(temp==NULL)
+        {
+            log_msg("NPheap alloc failed for offset : %d",offset);
+        }
+        for (index = 0; index < 32; index++)
+        {
+            if ((!strcmp (temp[index].dirname, dir)) &&
+                (!strcmp (temp[index].filename, filename)))
+            {
+                /* Entry found in inode block */
+                found=index;
+                break;
+            }
+        }
+        if(found!=-1)
+        {
+            break;
+        }
+    }
+    if(found != -1)
+    {
+        log_msg("Directory found. \n");
+        memcpy (stbuf, &temp[found]->mystat, sizeof(struct stat));
+        return 0;
+    }
+    else
+    {
+        log_msg("Directory not found. \n");
+        return -ENOENT;    
+    }
+}
+
+void split_path_file(char** dir, char** filename, char *path) {
+    char *slash = path, *next;
+    while ((next = strpbrk(slash + 1, "\\/"))) slash = next;
+    if (path != slash) slash++;
+    *dir = strndup(path, slash - path);
+    *filename = strdup(slash);
+
 }
 
 /** Read the target of a symbolic link
