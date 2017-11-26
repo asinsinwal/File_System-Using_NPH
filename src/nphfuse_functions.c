@@ -75,12 +75,12 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
         temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
         if(temp==NULL)
         {
-            log_msg("NPheap alloc failed for offset : %d",offset)
+            log_msg("NPheap alloc failed for offset : %d",offset);
         }
         for (index = 0; index < 32; index++)
         {
-            if ((!strcmp (temp[index].dirName, dir)) &&
-                (!strcmp (temp[index].fileName, filename)))
+            if ((!strcmp (temp[index].dirname, dir)) &&
+                (!strcmp (temp[index].filename, filename)))
             {
                 /* Entry found in inode block */
                 return &temp[index];
