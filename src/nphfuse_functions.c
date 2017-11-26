@@ -60,8 +60,45 @@ static npheap_store *getRootDirectory(void){
  */
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
-    return -ENOENT;
+    char *filename, *dir;
+    split_path_file(dir,filename,path);
+    npheap_store *temp = NULL;
     
+    log_msg("Searching dir entry: %s", dir);
+    if(strcmp (path,"/")==0)
+    {
+        return getRootDirectory();
+    }
+    __u64       offset = 0;
+    __u64       index = 0;
+    for(offset = 2; offset < 52; offset++){
+        temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
+        if(temp==NULL)
+        {
+            log_msg("NPheap alloc failed for offset : %d",offset)
+        }
+        for (index = 0; index < 32; index++)
+        {
+            if ((!strcmp (temp[index].dirName, dir)) &&
+                (!strcmp (temp[index].fileName, filename)))
+            {
+                /* Entry found in inode block */
+                return &temp[index];
+            }
+        }
+    }
+
+    
+    return ;    
+}
+
+void split_path_file(char** dir, char** filename, char *path) {
+    char *slash = path, *next;
+    while ((next = strpbrk(slash + 1, "\\/"))) slash = next;
+    if (path != slash) slash++;
+    *dir = strndup(path, slash - path);
+    *filename = strdup(slash);
+
 }
 
 /** Read the target of a symbolic link
