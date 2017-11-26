@@ -195,9 +195,9 @@ int nphfuse_mkdir(const char *path, mode_t mode)
         temp[index].mystat.st_uid = getuid();
         temp[index].mystat.st_gid = getgid();
         gettimeofday(&currTime, NULL);
-        temp[index].fstat.st_atime = currTime.tv_sec;
-        temp[index].fstat.st_mtime = currTime.tv_sec;
-        temp[index].fstat.st_ctime = currTime.tv_sec;
+        temp[index].mystat.st_atime = currTime.tv_sec;
+        temp[index].mystat.st_mtime = currTime.tv_sec;
+        temp[index].mystat.st_ctime = currTime.tv_sec;
         return 0;
     }
     else
