@@ -79,9 +79,9 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
             return 0;
         }
     }
-    __u64       offset = 0;
-    __u64       index = 0;
-    __u64       found = -1;
+    uint64_t       offset = 0;
+    uint64_t       index = 0;
+    uint64_t       found = -1;
     for(offset = 2; offset < 52; offset++){
         temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
         if(temp==NULL)
@@ -153,9 +153,9 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev)
     split_path_file(&dir,&filename,path);
     struct timeval currTime;
     npheap_store *temp = NULL;
-    __u64       offset = 0;
-    __u64       index = 0;
-    __u64       found = -1;
+    uint64_t       offset = 0;
+    uint64_t       index = 0;
+    uint64_t       found = -1;
     for(offset = 2; offset < 52; offset++){
         temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
         if(temp==NULL)
@@ -223,9 +223,9 @@ int nphfuse_mkdir(const char *path, mode_t mode)
     split_path_file(&dir,&filename,path);
     struct timeval currTime;
     npheap_store *temp = NULL;
-    __u64       offset = 0;
-    __u64       index = 0;
-    __u64       found = -1;
+    uint64_t       offset = 0;
+    uint64_t       index = 0;
+    uint64_t       found = -1;
     for(offset = 2; offset < 52; offset++){
         temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
         if(temp==NULL)
@@ -288,9 +288,9 @@ int nphfuse_rmdir(const char *path)
     split_path_file(&dir,&filename,path);
     npheap_store *temp;
 
-    __u64       offset = 0;
-    __u64       index = 0;
-    __u64       found = -1;
+    uint64_t       offset = 0;
+    uint64_t       index = 0;
+    uint64_t       found = -1;
     for(offset = 2; offset < 52; offset++){
         temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
         if(temp==NULL)
@@ -545,9 +545,9 @@ int nphfuse_opendir(const char *path, struct fuse_file_info *fi)
     split_path_file(&dir,&filename,path);
     npheap_store *temp;
 
-    __u64       offset = 0;
-    __u64       index = 0;
-    __u64       found = -1;
+    uint64_t       offset = 0;
+    uint64_t       index = 0;
+    uint64_t       found = -1;
     for(offset = 2; offset < 52; offset++){
         temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
         if(temp==NULL)
@@ -615,9 +615,9 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
     
     npheap_store *temp;
 
-    __u64       offset = 0;
-    __u64       index = 0;
-    // __u64       found = -1;
+    uint64_t       offset = 0;
+    uint64_t       index = 0;
+    // uint64_t       found = -1;
     filler(buf, ".", NULL, 0, 0);
     filler(buf, "..", NULL, 0, 0);
     for(offset = 2; offset < 52; offset++){
