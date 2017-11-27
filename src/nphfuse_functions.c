@@ -185,6 +185,9 @@ int nphfuse_mkdir(const char *path, mode_t mode)
     }
     if(found != -1)
     {
+        if(dir == NULL){
+            dir = "/";
+        }
         strcpy(temp[found].dirname, dir);
         strcpy(temp[found].filename, filename);
         temp[found].mystat.st_ino = 1;
@@ -474,6 +477,49 @@ int nphfuse_removexattr(const char *path, const char *name)
  */
 int nphfuse_opendir(const char *path, struct fuse_file_info *fi)
 {
+    char *filename, *dir;
+    split_path_file(&dir,&filename,path);
+    npheap_store *temp;
+
+    __u64       offset = 0;
+    __u64       index = 0;
+    __u64       found = -1;
+    for(offset = 2; offset < 52; offset++){
+        temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
+        if(temp==NULL)
+        {
+            log_msg("NPheap alloc failed for offset : %d",offset);
+        }
+        for (index = 0; index < 32; index++)
+        {
+            if ((!strcmp (temp[index].dirname, dir)) &&
+                (!strcmp (temp[index].filename, filename)))
+            {
+                /* Entry found in inode block */
+                found=index;
+                break;
+            }
+        }
+        if(found!=-1)
+        {
+            break;
+        }
+    }
+    if(found != -1)
+    {
+        log_msg("Directory found. \n");
+        fi->fh = (intptr_t) &temp[found];
+        log_msg("Checking if user has access to the file \n");
+        
+        
+        return 0;
+    }
+    else
+    {
+        log_msg("Directory not found. \n");
+        return -ENOENT;    
+    }
+
     return -ENOENT;
 }
 
@@ -502,13 +548,53 @@ int nphfuse_opendir(const char *path, struct fuse_file_info *fi)
 int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
 	       struct fuse_file_info *fi)
 {
-    return -ENOENT;
+    
+    npheap_store *temp;
+
+    __u64       offset = 0;
+    __u64       index = 0;
+    // __u64       found = -1;
+    filler(buf, ".", NULL, 0, 0);
+    filler(buf, "..", NULL, 0, 0);
+    for(offset = 2; offset < 52; offset++){
+        temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
+        if(temp==NULL)
+        {
+            log_msg("NPheap alloc failed for offset : %d",offset);
+        }
+        for (index = 0; index < 32; index++)
+        {
+            if ((!strcmp (temp[index].dirname, path)))
+            {
+                /* Entry found in inode block */
+                filler(buf, temp[index].filename, NULL, 0, 0);
+                // found=index;
+            }
+        }
+        
+    }
+    // if(found != -1)
+    // {
+    //     log_msg("Directory found. \n");
+    //     temp[found].filename[0] = '\0';
+    //     temp[found].dirname[0] = '\0';
+    //     memset(&temp[found].mystat, 0, sizeof(struct stat));
+    //     log_msg("Directory deleted \n");
+    //     return 0;
+    // }
+    // else
+    // {
+    //     log_msg("Directory not found. \n");
+    //     return -ENOENT;    
+    // }
+    return 0;
 }
 
 /** Release directory
  */
 int nphfuse_releasedir(const char *path, struct fuse_file_info *fi)
 {
+    log_msg("");
     return 0;
 }
 
