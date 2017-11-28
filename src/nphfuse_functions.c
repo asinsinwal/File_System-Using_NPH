@@ -81,7 +81,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
             return 0;
         }
     }
-    
+
     uint64_t       offset = 0;
     uint64_t       index = 0;
     uint64_t       found = -1;
@@ -617,23 +617,25 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
     
     npheap_store *temp;
 
-    uint64_t       offset = 0;
+    uint64_t       u_offset = 0;
     uint64_t       index = 0;
     // uint64_t       found = -1;
-    filler(buf, ".", NULL, 0, 0);
-    filler(buf, "..", NULL, 0, 0);
-    for(offset = 2; offset < 52; offset++){
+
+    filler(buf, ".", NULL, 0);
+    filler(buf, "..", NULL, 0);
+
+    for(u_offset = 2; u_offset < 52; u_offset++){
         temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
         if(temp==NULL)
         {
-            log_msg("NPheap alloc failed for offset : %d",offset);
+            log_msg("NPheap alloc failed for offset : %d",u_offset);
         }
         for (index = 0; index < 32; index++)
         {
             if ((!strcmp (temp[index].dirname, path)))
             {
                 /* Entry found in inode block */
-                filler(buf, temp[index].filename, NULL, 0, 0);
+                filler(buf, temp[index].filename, NULL, 0);
                 // found=index;
             }
         }
