@@ -61,13 +61,15 @@ static npheap_store *getRootDirectory(void){
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
     char *filename, *dir;
-    split_path_file(&dir,&filename,path);
+    extract_directory_file(&dir,&filename,path);
     npheap_store *temp = NULL;
     
-    log_msg("Searching dir entry: %s", dir);
+    log_msg("Searching dir entry: %s\n", *dir);
+    log_msg("Corresponding file entry: %s\n", *filename);
+
     if(strcmp (path,"/")==0)
     {
-        log_msg("Callling getRootDirectory()");
+        log_msg("Calling getRootDirectory() \n");
         if(getRootDirectory()==NULL)
         {
             log_msg("Root directory not found. \n");
@@ -79,6 +81,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
             return 0;
         }
     }
+    
     uint64_t       offset = 0;
     uint64_t       index = 0;
     uint64_t       found = -1;
@@ -116,13 +119,12 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
     }
 }
 
-void split_path_file(char** dir, char** filename, char *path) {
+void extract_directory_files(char** dir, char** filename, char *path) {
     char *slash = path, *next;
     while ((next = strpbrk(slash + 1, "\\/"))) slash = next;
     if (path != slash) slash++;
     *dir = strndup(path, slash - path);
     *filename = strdup(slash);
-
 }
 
 /** Read the target of a symbolic link
@@ -150,7 +152,7 @@ int nphfuse_readlink(const char *path, char *link, size_t size)
 int nphfuse_mknod(const char *path, mode_t mode, dev_t dev)
 {
     char *filename, *dir;
-    split_path_file(&dir,&filename,path);
+    extract_directory_file(&dir,&filename,path);
     struct timeval currTime;
     npheap_store *temp = NULL;
     uint64_t       offset = 0;
@@ -220,7 +222,7 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev)
 int nphfuse_mkdir(const char *path, mode_t mode)
 {
     char *filename, *dir;
-    split_path_file(&dir,&filename,path);
+    extract_directory_file(&dir,&filename,path);
     struct timeval currTime;
     npheap_store *temp = NULL;
     uint64_t       offset = 0;
@@ -285,7 +287,7 @@ int nphfuse_unlink(const char *path)
 int nphfuse_rmdir(const char *path)
 {
     char *filename, *dir;
-    split_path_file(&dir,&filename,path);
+    extract_directory_file(&dir,&filename,path);
     npheap_store *temp;
 
     uint64_t       offset = 0;
@@ -542,7 +544,7 @@ int nphfuse_removexattr(const char *path, const char *name)
 int nphfuse_opendir(const char *path, struct fuse_file_info *fi)
 {
     char *filename, *dir;
-    split_path_file(&dir,&filename,path);
+    extract_directory_file(&dir,&filename,path);
     npheap_store *temp;
 
     uint64_t       offset = 0;
