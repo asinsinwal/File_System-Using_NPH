@@ -48,7 +48,7 @@ static npheap_store *getRootDirectory(void){
     return &(temp[0]);
 }
 
-void extract_directory_files(char** dir, char** filename, char *path) {
+void extract_directory_file(char** dir, char** filename, char *path) {
     char *slash = path, *next;
     while ((next = strpbrk(slash + 1, "\\/"))) slash = next;
     if (path != slash) slash++;
