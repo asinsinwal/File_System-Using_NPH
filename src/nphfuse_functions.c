@@ -47,6 +47,14 @@ static npheap_store *getRootDirectory(void){
     log_msg("Root directory created. \n");
     return &(temp[0]);
 }
+
+void extract_directory_files(char** dir, char** filename, char *path) {
+    char *slash = path, *next;
+    while ((next = strpbrk(slash + 1, "\\/"))) slash = next;
+    if (path != slash) slash++;
+    *dir = strndup(path, slash - path);
+    *filename = strdup(slash);
+}
 ///////////////////////////////////////////////////////////
 //
 // Prototypes for all these functions, and the C-style comments,
@@ -117,14 +125,6 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
         log_msg("Directory not found. \n");
         return -ENOENT;    
     }
-}
-
-void extract_directory_files(char** dir, char** filename, char *path) {
-    char *slash = path, *next;
-    while ((next = strpbrk(slash + 1, "\\/"))) slash = next;
-    if (path != slash) slash++;
-    *dir = strndup(path, slash - path);
-    *filename = strdup(slash);
 }
 
 /** Read the target of a symbolic link
