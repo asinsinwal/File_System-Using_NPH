@@ -728,6 +728,7 @@ static void initialAllocationNPheap(void){
 
 
     npheap_fd = open(nphfuse_data->device_name, O_RDWR);
+    log_msg("Allocation started for %d.\n", offset);
 
     if(npheap_getsize(npheap_fd, offset) == 0){
         log_msg("Allocating superblock.!\n");
