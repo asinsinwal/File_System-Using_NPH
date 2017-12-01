@@ -81,7 +81,7 @@ static npheap_store *retrieve_inode(const char *path){
 }
 
 static npheap_store *get_free_inode(uint64_t *ind_val){
-    int inode_index = 0;
+    uint64_t inode_index = 0;
     int flag = 0;
     npheap_store *temp = NULL;
     uint64_t offset = 2;
@@ -92,14 +92,14 @@ static npheap_store *get_free_inode(uint64_t *ind_val){
         temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
         log_msg("INODE main loop.\n");
         //If returned value is null
-        if(temp==NULL){
+        if(!temp){
             log_msg("NPheap alloc failed for offset : %d\n",offset);
         }
         // internal block check
         for (index = 0; index < 32; index++){
             log_msg("Search %d in offset %d for free inode", index, offset);
-            if ((strcmp (temp[index].dirname[0], '\0')) &&
-                (strcmp (temp[index].filename[0], '\0'))){
+            if (temp[index].dirname[0] == '\0' &&
+                temp[index].filename[0] == '\0'){
                 log_msg("Free inode found at %d in offset %d\n", index, offset);
                 flag = 1;
                 inode_index = index;
@@ -839,7 +839,7 @@ static void initialAllocationNPheap(void){
     for(offset = 2; offset < 52; offset++){
         //log_msg("Inode allocation for %d offset\n", offset);
         if(npheap_getsize(npheap_fd, offset)==0){
-            block_dt = npheap_alloc(npheap_fd, offset, 8192);
+            block_dt = npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
             memset(block_dt, 0, npheap_getsize(npheap_fd, offset));
         }
         log_msg("Inode allocation for %d offset and %d size\n", offset,(npheap_getsize(npheap_fd, offset)));
