@@ -392,6 +392,9 @@ int nphfuse_mkdir(const char *path, mode_t mode){
 /** Remove a file */
 int nphfuse_unlink(const char *path){
     //Individual file delete
+    npheap_store *inode = NULL;
+    log_msg("Into UNLINK for %s\n", path);
+
     return -1;
 }
 
@@ -456,6 +459,8 @@ int nphfuse_symlink(const char *path, const char *link)
 int nphfuse_rename(const char *path, const char *newpath)
 {
     log_msg("Rename called for %s path to %s newpath\n", path, newpath);
+
+
     return -1;
 }
 
@@ -466,8 +471,7 @@ int nphfuse_link(const char *path, const char *newpath)
 }
 
 /** Change the permission bits of a file */
-int nphfuse_chmod(const char *path, mode_t mode)
-{
+int nphfuse_chmod(const char *path, mode_t mode){
     log_msg("Entry into CHMOD.\n");
     npheap_store *inode = NULL;
     struct timeval currTime;
@@ -524,8 +528,7 @@ int nphfuse_chmod(const char *path, mode_t mode)
 }
 
 /** Change the owner and group of a file */
-int nphfuse_chown(const char *path, uid_t uid, gid_t gid)
-{
+int nphfuse_chown(const char *path, uid_t uid, gid_t gid){
     log_msg("Entry into CHOWN.\n");
     npheap_store *inode = NULL;
     struct timeval currTime;
