@@ -606,7 +606,6 @@ int nphfuse_opendir(const char *path, struct fuse_file_info *fi)
         else
         {
             log_msg("Root directory found. \n");
-            memcpy(stbuf, &inode->mystat, sizeof(struct stat));
             //Check if accessibilty can be given
             int flag_inner = 0;
             if(getuid() == 0 || getgid() == 0){
