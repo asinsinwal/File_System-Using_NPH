@@ -98,7 +98,7 @@ static npheap_store *get_free_inode(uint64_t *ind_val){
         }
         // internal block check
         for (index = 0; index < 32; index++){
-            log_msg("Search %d in offset %d for free inode", index, offset);
+            log_msg("Search %d in offset %d for free inode\n", index, offset);
             if (temp[index].dirname[0] == '\0' &&
                 temp[index].filename[0] == '\0'){
                 log_msg("Free inode found at %d in offset %d\n", index, offset);
@@ -290,15 +290,15 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev)
         if(dir == NULL){
             dir = "/";
         }
-        log_msg("Allocating NPheap object for file at offset : %d",data_off);
+        log_msg("Allocating NPheap object for file at offset : %d\n",data_off);
         npheap_store *file = (npheap_store *)npheap_alloc(npheap_fd, data_off, BLOCK_SIZE);
         if(temp==NULL)
         {
-            log_msg("Allocating NPheap object FAILED for offset : %d",offset);
+            log_msg("Allocating NPheap object FAILED for offset : %d\n",offset);
             return -1;  // Error in NPheap alloc
         }
         else{
-            log_msg("Allocating NPheap object SUCCESSFUL for offset : %d",offset);
+            log_msg("Allocating NPheap object SUCCESSFUL for offset : %d\n",offset);
             strcpy(temp[found].dirname, dir);
             strcpy(temp[found].filename, filename);
             temp[found].mystat.st_ino = data_off;
@@ -710,21 +710,30 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
     struct dirent de;
     uint64_t u_offset = 2;
     uint64_t index = 0;
+    char dir[54];
+    char filename[54];
+
     log_msg("Into READDIR function.\n");
     // filler(buf, ".", NULL, 0);
     // filler(buf, "..", NULL, 0);
 
+    int extract = extract_directory_file(dir, filename, path);
+
+    if(extract == 1){
+        return -ENOENT;
+    }
+
     for(u_offset = 2; u_offset < 52; u_offset++){
         temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
-        if(temp==NULL)
-        {
-            log_msg("NPheap alloc failed for offset : %d",u_offset);
+        if(temp==NULL){
+            log_msg("NPheap alloc failed for offset : %d\n",u_offset);
         }
-        for (index = 0; index < 32; index++)
-        {
 
-            if ((!strcmp (temp[index].dirname, path)) && (strcmp(temp[index].filename, "/"))){
+        for (index = 0; index < 32; index++){
+            log_msg("Search directory %s and file %s\n", dir, filename);
+            if ((!strcmp (temp[index].dirname, dir)) && (!strcmp(temp[index].filename, filename))){
                 /* Entry found in inode block */
+                log_msg("Adding into dirent.\n");
                 memset(&de, 0, sizeof(de));
                 strcpy(de.d_name, temp[index].filename);
                 if(filler(buf, temp[index].filename, NULL, 0) !=0){
@@ -732,7 +741,6 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
                 }
             }
         }
-        
     }
     return 0;
 }
