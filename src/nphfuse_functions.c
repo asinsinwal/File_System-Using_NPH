@@ -469,7 +469,58 @@ int nphfuse_truncate(const char *path, off_t newsize)
 /** Change the access and/or modification times of a file */
 int nphfuse_utime(const char *path, struct utimbuf *ubuf)
 {
+    log_msg("Into utime.\n");
+    npheap_store *temp = NULL;
+
+    if(strcmp(path,"/")==0){
+        temp = getRootDirectory();
+        if(temp==NULL)
+        {
+            log_msg("Root directory not found in utime.\n");
+            return -ENOENT;
+        }
+        else
+        {
+            int flag = checkAccess(temp);
+            if(flag==0){
+                log_msg("Cannot access in root.\n");
+                return - EACCES;
+            }
+
+            // Set from ubuf
+            if(ubuf->actime){
+                temp->mystat.st_atime = ubuf->actime;
+            }
+            if(ubuf->modtime){
+                temp->mystat.st_mtime = ubuf->modtime;
+            }
+            log_msg("Ubuf ran successfully.! \n");
+            return 0;
+        }
+    }
+
+    temp = retrieve_inode(path);
+
+    if(temp==0){
+        log_msg("Cannot find the inode in ubuf.\n");
         return -ENOENT;
+    }
+
+    int flag1 = checkAccess(temp);
+    if(flag1==0){
+        log_msg("Cannot access the asked inode.\n");
+        return - EACCES;
+    }
+
+    if(ubuf->actime){
+        temp->mystat.st_atime = ubuf->actime;
+    }
+    if(ubuf->modtime){
+        temp->mystat.st_mtime = ubuf->modtime;
+    }
+    log_msg("Ubuf ran successfully.! \n");
+    return 0;
+
 }
 
 /** File open operation
