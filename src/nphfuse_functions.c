@@ -731,7 +731,7 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
 
         for (index = 0; index < 32; index++){
             log_msg("Search directory %s and file %s\n", dir, filename);
-            if ((!strcmp (temp[index].dirname, dir)) && (!strcmp(temp[index].filename, filename))){
+            if ((!strcmp (temp[index].dirname, dir)) && (strcmp(temp[index].filename, "/"))){
                 /* Entry found in inode block */
                 log_msg("Adding into dirent.\n");
                 memset(&de, 0, sizeof(de));
