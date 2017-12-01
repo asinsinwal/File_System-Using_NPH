@@ -45,7 +45,7 @@ static npheap_store *getRootDirectory(void){
         return NULL;
     }
     //
-    log_msg("Root directory found, linking to %d with %d size. \n", (&temp1[0]).mystat->st_nlink, (&temp1[0].st_size));
+    //log_msg("Root directory found, linking to %d with %d size. \n", (&temp1[0]).mystat->st_nlink, (&temp1[0].st_size));
     //
     return &(temp1[0]);
 }
