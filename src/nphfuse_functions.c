@@ -405,7 +405,7 @@ int nphfuse_rmdir(const char *path){
                     log_msg("%s directory and %s filename \n", dir, filename);
                     inode[index].dirname[0] = '\0';
                     inode[index].filename[0] = '\0';
-                    memset(inode, 0, sizeof(npheap_store));
+                    memset(&inode[index], 0, sizeof(npheap_store));
                     log_msg("Directory deleted\n");
                     return 0;
             }
