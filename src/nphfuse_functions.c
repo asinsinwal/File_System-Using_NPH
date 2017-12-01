@@ -79,8 +79,8 @@ static npheap_store *retrieve_inode(const char *path){
         }
 
         for(int i = 0; i < 32; i++){
-            if((strcmp(npheap_store[i].dirname, dir)==0) && strcmp(npheap_store[i].filename, filename)==0){
-                return &npheap_store[i];
+            if((strcmp(start[i].dirname, dir)==0) && (strcmp(start[i].filename, filename)==0)){
+                return &start[i];
             }
         }
     }
