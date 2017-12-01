@@ -95,6 +95,7 @@ static npheap_store *get_free_inode(uint64_t *ind_val){
         }
         // internal block check
         for (index = 0; index < 32; index++){
+            log_msg("Search %d in offset %d for free inode", index, offset);
             if ((strcmp (temp[index].dirname[0], '\0')) &&
                 (strcmp (temp[index].filename[0], '\0'))){
                 log_msg("Free inode found at %d in offset %d\n", index, offset);
@@ -838,8 +839,8 @@ static void initialAllocationNPheap(void){
         if(npheap_getsize(npheap_fd, offset)==0){
             block_dt = npheap_alloc(npheap_fd, offset, 8192);
             memset(block_dt, 0, npheap_getsize(npheap_fd, offset));
-            strcpy(block_dt->dirname,'\0');
-            strcpy(block_dt->filename,'\0'); 
+            strcpy(block_dt->dirname[0],'\0');
+            strcpy(block_dt->filename[0],'\0'); 
         }
         log_msg("Inode allocation for %d offset and %d size\n", offset,(npheap_getsize(npheap_fd, offset)));
     }
