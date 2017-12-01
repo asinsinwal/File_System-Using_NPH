@@ -158,7 +158,8 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
     if(strcmp (path,"/")==0)
     {
         log_msg("Calling getRootDirectory() \n");
-        if(getRootDirectory()==NULL)
+        inode = getRootDirectory();
+        if(inode==NULL)
         {
             log_msg("Root directory not found. \n");
             return -ENOENT;
@@ -166,6 +167,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
         else
         {
             log_msg("Root directory found. \n");
+            memcpy(stbuf, &inode->mystat, sizeof(struct stat));
             return 0;
         }
     }
