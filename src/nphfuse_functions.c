@@ -325,8 +325,7 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev)
 
 
 /** Create a directory */
-int nphfuse_mkdir(const char *path, mode_t mode)
-{
+int nphfuse_mkdir(const char *path, mode_t mode){
     // char *filename, *dir;
     // extract_directory_file(&dir,&filename,path);
     struct timeval currTime;
@@ -708,14 +707,13 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
 	       struct fuse_file_info *fi)
 {
     
-    npheap_store *temp;
-
-    uint64_t       u_offset = 0;
-    uint64_t       index = 0;
-    // uint64_t       found = -1;
-
-    filler(buf, ".", NULL, 0);
-    filler(buf, "..", NULL, 0);
+    npheap_store *temp = NULL;
+    struct dirent de;
+    uint64_t u_offset = 2;
+    uint64_t index = 0;
+    log_msg("Into READDIR function.\n");
+    // filler(buf, ".", NULL, 0);
+    // filler(buf, "..", NULL, 0);
 
     for(u_offset = 2; u_offset < 52; u_offset++){
         temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
@@ -725,29 +723,18 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
         }
         for (index = 0; index < 32; index++)
         {
-            if ((!strcmp (temp[index].dirname, path)))
-            {
+
+            if ((!strcmp (temp[index].dirname, path)) && (strcmp(temp[index].filename, "/"))){
                 /* Entry found in inode block */
-                filler(buf, temp[index].filename, NULL, 0);
-                // found=index;
+                memset(&de, 0, sizeof(de));
+                strcpy(de.d_name, temp[index].filename);
+                if(filler(buf, temp[index].filename, NULL, 0) !=0){
+                    return -ENOMEM;
+                }
             }
         }
         
     }
-    // if(found != -1)
-    // {
-    //     log_msg("Directory found. \n");
-    //     temp[found].filename[0] = '\0';
-    //     temp[found].dirname[0] = '\0';
-    //     memset(&temp[found].mystat, 0, sizeof(struct stat));
-    //     log_msg("Directory deleted \n");
-    //     return 0;
-    // }
-    // else
-    // {
-    //     log_msg("Directory not found. \n");
-    //     return -ENOENT;    
-    // }
     return 0;
 }
 
