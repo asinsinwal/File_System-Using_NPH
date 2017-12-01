@@ -839,8 +839,6 @@ static void initialAllocationNPheap(void){
         if(npheap_getsize(npheap_fd, offset)==0){
             block_dt = npheap_alloc(npheap_fd, offset, 8192);
             memset(block_dt, 0, npheap_getsize(npheap_fd, offset));
-            strcpy(block_dt->dirname,"\0");
-            strcpy(block_dt->filename,"\0"); 
         }
         log_msg("Inode allocation for %d offset and %d size\n", offset,(npheap_getsize(npheap_fd, offset)));
     }
