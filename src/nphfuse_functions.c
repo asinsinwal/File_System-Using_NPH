@@ -716,7 +716,7 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
     // filler(buf, "..", NULL, 0);
 
     int extract = extract_directory_file(dir, filename, path);
-
+    log_msg("In readdir: directory - %s and file - %s for path %s \n", dir, filename,path);
     if(extract == 1){
         return -ENOENT;
     }
