@@ -121,6 +121,7 @@ static npheap_store *get_free_inode(uint64_t *ind_val){
     return NULL;
 }
 
+
 int extract_directory_file(char *dir, char *filename, const char *path) {
     // char *slash = path, *next;
     // while ((next = strpbrk(slash + 1, "\\/"))) slash = next;
@@ -241,8 +242,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf){
 // null.  So, the size passed to to the system readlink() must be one
 // less than the size passed to nphfuse_readlink()
 // nphfuse_readlink() code by Bernardo F Costa (thanks!)
-int nphfuse_readlink(const char *path, char *link, size_t size)
-{
+int nphfuse_readlink(const char *path, char *link, size_t size){
     return -1;
 }
 
@@ -297,7 +297,7 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev){
 
     //Set the offset for data object
     if(npheap_getsize(npheap_fd, data_off) != 0){
-        log_msg("Cannot allocate memory for data on %d offset. Reverting...", data_off);
+        log_msg("Cannot allocate memory for data on %d offset. Reverting...\n", data_off);
         inode_off--;
         return -ENOSPC;
     }
@@ -315,9 +315,8 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev){
     //Everything worked fine
     memset(data_block, 0, BLOCK_SIZE);
     inode->offset = data_off;
+    log_msg("mknod ran successfully in NPHeap for %d data offset\n", data_off);
     data_off++;
-
-    log_msg("mknod ran successfully in NPHeap");
     return 0;
 }
 
@@ -372,55 +371,45 @@ int nphfuse_mkdir(const char *path, mode_t mode){
 }
 
 /** Remove a file */
-int nphfuse_unlink(const char *path)
-{
+int nphfuse_unlink(const char *path){
+    //Individual file delete
     return -1;
 }
 
 /** Remove a directory */
-int nphfuse_rmdir(const char *path)
-{
-    char *filename, *dir;
-    extract_directory_file(&dir,&filename,path);
-    npheap_store *temp;
+int nphfuse_rmdir(const char *path){
+    //unlink is also called
+    log_msg("Into rmdir.\n");
+    char dir[236];
+    char filename[128];
+    npheap_store *inode = NULL;
+    uint64_t offset = 2;
+    int flag = 0;
 
-    uint64_t       offset = 0;
-    uint64_t       index = 0;
-    uint64_t       found = -1;
+    int extract = extract_directory_file(dir,filename,path);
+
+    if(extract==1){
+        return -ENOENT;
+    }
+
     for(offset = 2; offset < 1000; offset++){
-        temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
-        if(temp==NULL)
+        inode= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
+        if(inode==NULL)
         {
             log_msg("NPheap alloc failed for offset : %d",offset);
         }
         for (index = 0; index <16; index++)
         {
-            if ((!strcmp (temp[index].dirname, dir)) &&
-                (!strcmp (temp[index].filename, filename)))
-            {
-                /* Entry found in inode block */
-                found=index;
-                break;
+            if ((!strcmp (inode[index].dirname, dir)) &&
+                (!strcmp (inode[index].filename, filename))){
+                    log_msg("%s directory and %s filename \n", dir, filename);
+                    inode[index].dirname[0] = '\0';
+                    inode[index].filename[0] = '\0';
+                    memset(inode, 0, sizeof(npheap_store));
+                    log_msg("Directory deleted\n");
+                    return 0;
             }
         }
-        if(found!=-1)
-        {
-            break;
-        }
-    }
-    if(found != -1)
-    {
-        log_msg("Directory found. \n");
-        temp[found].filename[0] = '\0';
-        temp[found].dirname[0] = '\0';
-        memset(&temp[found].mystat, 0, sizeof(struct stat));
-        log_msg("Directory deleted \n");
-        return 0;
-    }
-    else
-    {
-        log_msg("Directory not found. \n");
-        return -ENOENT;    
     }
     return -1;
 }
@@ -439,6 +428,7 @@ int nphfuse_symlink(const char *path, const char *link)
 // both path and newpath are fs-relative
 int nphfuse_rename(const char *path, const char *newpath)
 {
+    log_msg("Rename called for %s path to %s newpath\n", path, newpath);
     return -1;
 }
 
@@ -467,8 +457,7 @@ int nphfuse_truncate(const char *path, off_t newsize)
 }
 
 /** Change the access and/or modification times of a file */
-int nphfuse_utime(const char *path, struct utimbuf *ubuf)
-{
+int nphfuse_utime(const char *path, struct utimbuf *ubuf){
     log_msg("Into utime.\n");
     npheap_store *temp = NULL;
 
@@ -533,8 +522,7 @@ int nphfuse_utime(const char *path, struct utimbuf *ubuf)
  *
  * Changed in version 2.2
  */
-int nphfuse_open(const char *path, struct fuse_file_info *fi)
-{
+int nphfuse_open(const char *path, struct fuse_file_info *fi){
     struct timeval currTime;
     npheap_store *temp = NULL;
 
@@ -596,8 +584,7 @@ int nphfuse_open(const char *path, struct fuse_file_info *fi)
 // can return with anything up to the amount of data requested. nor
 // with the fusexmp code which returns the amount of data also
 // returned by read.
-int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
-{
+int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi){
     return -ENOENT;
 }
 
@@ -609,8 +596,7 @@ int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct 
  *
  */
 int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
-	     struct fuse_file_info *fi)
-{
+	     struct fuse_file_info *fi){
     return -ENOENT;
 }
 
@@ -621,8 +607,7 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
  * Replaced 'struct statfs' parameter with 'struct statvfs' in
  * version 2.5
  */
-int nphfuse_statfs(const char *path, struct statvfs *statv)
-{
+int nphfuse_statfs(const char *path, struct statvfs *statv){
     return -1;
 }
 
@@ -651,8 +636,7 @@ int nphfuse_statfs(const char *path, struct statvfs *statv)
  */
 
 // this is a no-op in NPHFS.  It just logs the call and returns success
-int nphfuse_flush(const char *path, struct fuse_file_info *fi)
-{
+int nphfuse_flush(const char *path, struct fuse_file_info *fi){
     log_msg("\nnphfuse_flush(path=\"%s\", fi=0x%08x)\n", path, fi);
     // no need to get fpath on this one, since I work from fi->fh not the path
     log_fi(fi);
@@ -791,8 +775,7 @@ int nphfuse_opendir(const char *path, struct fuse_file_info *fi){
  */
 
 int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
-	       struct fuse_file_info *fi)
-{
+	       struct fuse_file_info *fi){
     
     npheap_store *temp = NULL;
     struct dirent de;
@@ -836,8 +819,7 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
 
 /** Release directory
  */
-int nphfuse_releasedir(const char *path, struct fuse_file_info *fi)
-{
+int nphfuse_releasedir(const char *path, struct fuse_file_info *fi){
     log_msg("Into release dir \n");
     return 0;
 }
@@ -851,8 +833,7 @@ int nphfuse_releasedir(const char *path, struct fuse_file_info *fi)
  */
 // when exactly is this called?  when a user calls fsync and it
 // happens to be a directory? ??? 
-int nphfuse_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi)
-{
+int nphfuse_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi){
     return 0;
 }
 
@@ -872,8 +853,7 @@ int nphfuse_access(const char *path, int mask){
  *
  * Introduced in version 2.5
  */
-int nphfuse_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi)
-{
+int nphfuse_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi){
     return -1;
 }
 
@@ -942,8 +922,7 @@ static void initialAllocationNPheap(void){
 }
 
 
-void *nphfuse_init(struct fuse_conn_info *conn)
-{
+void *nphfuse_init(struct fuse_conn_info *conn){
     log_msg("\nnphfuse_init()\n");
     log_conn(conn);
     log_fuse_context(fuse_get_context());
@@ -960,7 +939,6 @@ void *nphfuse_init(struct fuse_conn_info *conn)
  *
  * Introduced in version 2.3
  */
-void nphfuse_destroy(void *userdata)
-{
+void nphfuse_destroy(void *userdata){
     log_msg("\nnphfuse_destroy(userdata=0x%08x)\n", userdata);
 }
