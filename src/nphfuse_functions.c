@@ -29,8 +29,7 @@
 extern struct nphfuse_state *nphfuse_data;
 
 int npheap_fd = 1;
-uint64_t inode_off = 3;
-uint64_t data_off = 2000;
+uint64_t data_off = 53;
 char *data[10999];
 
 //Getting the root directory
@@ -78,6 +77,44 @@ static npheap_store *retrieve_inode(const char *path){
         }
     }
     //Didn't find the inode for given path
+    return NULL;
+}
+
+static npheap_store *get_free_inode(uint64_t *ind_val){
+    int inode_index = 0;
+    bool flag = false;
+    npheap_store *temp = NULL;
+    uint64_t offset = 2;
+    uint64_t index = 0;
+
+    for(offset = 2; offset < 52; offset++){
+        temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
+        //If returned value is null
+        if(temp==NULL){
+            log_msg("NPheap alloc failed for offset : %d\n",offset);
+        }
+        // internal block check
+        for (index = 0; index < 32; index++){
+            if ((strcmp (temp[index].dirname[0], '\0')) &&
+                (strcmp (temp[index].filename[0], '\0'))){
+                log_msg("Free inode found at %d in offset %d\n", index, offset);
+                flag = true;
+                inode_index = index;
+                break;
+            }
+        }
+        //If value obtained in inner loop
+        if(flag){
+            break;
+        }
+    }
+    //Return inode
+    if(flag){
+        *ind_val = inode_index;
+        return &temp[inode_index];
+    }
+
+    log_msg("Couldn't find the free space.\n");
     return NULL;
 }
 
@@ -249,8 +286,8 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev)
         if(dir == NULL){
             dir = "/";
         }
-        log_msg("Allocating NPheap object for file at offset : %d",inode_off);
-        npheap_store *file = (npheap_store *)npheap_alloc(npheap_fd, inode_off, BLOCK_SIZE);
+        log_msg("Allocating NPheap object for file at offset : %d",data_off);
+        npheap_store *file = (npheap_store *)npheap_alloc(npheap_fd, data_off, BLOCK_SIZE);
         if(temp==NULL)
         {
             log_msg("Allocating NPheap object FAILED for offset : %d",offset);
@@ -260,8 +297,8 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev)
             log_msg("Allocating NPheap object SUCCESSFUL for offset : %d",offset);
             strcpy(temp[found].dirname, dir);
             strcpy(temp[found].filename, filename);
-            temp[found].mystat.st_ino = inode_off;
-            inode_off++;
+            temp[found].mystat.st_ino = data_off;
+            data_off++;
             temp[found].mystat.st_mode = S_IFDIR | mode;
             temp[found].mystat.st_nlink = 1;
             temp[found].mystat.st_size = BLOCK_SIZE;
@@ -287,58 +324,50 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev)
 /** Create a directory */
 int nphfuse_mkdir(const char *path, mode_t mode)
 {
-    char *filename, *dir;
-    extract_directory_file(&dir,&filename,path);
+    // char *filename, *dir;
+    // extract_directory_file(&dir,&filename,path);
     struct timeval currTime;
-    npheap_store *temp = NULL;
-    uint64_t       offset = 0;
-    uint64_t       index = 0;
-    uint64_t       found = -1;
-    for(offset = 2; offset < 52; offset++){
-        temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
-        if(temp==NULL)
-        {
-            log_msg("NPheap alloc failed for offset : %d",offset);
-        }
-        for (index = 0; index < 32; index++)
-        {
-            if ((strcmp (temp[index].dirname[0], '\0')) &&
-                (strcmp (temp[index].filename[0], '\0')))
-            {
-                /* Entry found in inode block */
-                found=index;
-                break;
-            }
-        }
-        if(found!=-1)
-        {
-            break;
-        }
+    npheap_store *inode = NULL;
+    char dir[54];
+    char filename[54];
+    uint64_t findex = -1;
+
+    inode = get_free_inode(&findex);
+
+    //If empty directory not found
+    if(inode == NULL){
+        log_msg("Empty Directory not found. \n");
+        return -ENOENT; 
     }
-    if(found != -1)
-    {
-        if(dir == NULL){
-            dir = "/";
-        }
-        strcpy(temp[found].dirname, dir);
-        strcpy(temp[found].filename, filename);
-        temp[found].mystat.st_ino = 1;
-        temp[found].mystat.st_mode = S_IFDIR | mode;
-        temp[found].mystat.st_nlink = 1;
-        temp[found].mystat.st_size = BLOCK_SIZE;
-        temp[found].mystat.st_uid = getuid();
-        temp[found].mystat.st_gid = getgid();
-        gettimeofday(&currTime, NULL);
-        temp[found].mystat.st_atime = currTime.tv_sec;
-        temp[found].mystat.st_mtime = currTime.tv_sec;
-        temp[found].mystat.st_ctime = currTime.tv_sec;
-        return 0;
+
+    //Get directory and filename
+    int extract = extract_directory_file(dir, filename, path);
+    if(extract == 1){
+        log_msg("Extraction failed. \n");
+        return -EINVAL;
     }
-    else
-    {
-        log_msg("Directory not found. \n");
-        return -ENOENT;    
-    }
+    log_msg("Directory %s and Filename is %s \n", dir, filename);
+
+    memset(inode, 0, sizeof(npheap_store));
+    strcpy(inode->dirname, dir);
+    strcpy(inode->filename, filename);
+
+    strcpy(inode->dirname, dir);
+    strcpy(inode->filename, filename);
+
+    inode->mystat.st_ino = 1;
+    inode->mystat.st_mode = S_IFDIR | mode;
+    inode->mystat.st_gid = getgid();
+    inode->mystat.st_uid = getuid();
+    inode->mystat.st_size = BLOCK_SIZE;
+    inode->mystat.st_nlink = 1;
+
+    gettimeofday(&currTime, NULL);
+    inode->mystat.st_atime = currTime.tv_sec;
+    inode->mystat.st_mtime = currTime.tv_sec;
+    inode->mystat.st_ctime = currTime.tv_sec;
+
+    log_msg("mkdir executed successfully.!\n");
 
     return 0;
 }
@@ -817,8 +846,7 @@ static void initialAllocationNPheap(void){
     log_msg("Assigning stat values\n");
     strcpy(head_dir->dirname, "/");
     strcpy(head_dir->filename, "/");
-    head_dir->mystat.st_ino = inode_off;
-    inode_off++;
+    head_dir->mystat.st_ino = 1;
     head_dir->mystat.st_mode = S_IFDIR | 0755;
     head_dir->mystat.st_nlink = 2;
     head_dir->mystat.st_size = npheap_getsize(npheap_fd,1);
