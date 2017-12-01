@@ -37,16 +37,14 @@ char *data[10999];
 static npheap_store *getRootDirectory(void){
     npheap_store *temp1 = NULL;
 
-    log_msg("Get the root directory. \n");
+    log_msg("Get Root Directory function called.!");
     temp1 = (npheap_store *)npheap_alloc(npheap_fd, 2, BLOCK_SIZE);
 
     if(temp1 == NULL){
-        log_msg("Root directory was not found.\n");
+        log_msg("\tRoot directory not found.\n");
         return NULL;
     }
-    //
-    //log_msg("Root directory found, linking to %d with %d size. \n", (&temp1[0]).mystat->st_nlink, (&temp1[0].st_size));
-    //
+    log_msg("\tRoot directory found.\n");
     return &(temp1[0]);
 }
 
@@ -56,15 +54,10 @@ static npheap_store *retrieve_inode(const char *path){
     uint64_t offset = 2;
     npheap_store *start = NULL;
 
-    //Check if root directory
-    if(strcmp(path,"/") == 0){
-        log_msg("Root directory inode is asked.");
-        return getRootDirectory();
-    }
-
     //Get from directory
     int extract = extract_directory_file(dir, filename, path);
 
+    //If couldn't extract the file and directory
     if(extract == 1){
         return NULL;
     }
@@ -94,6 +87,7 @@ int extract_directory_file(char *dir, char *filename, const char *path) {
     // if (path != slash) slash++;
     // *dir = strndup(path, slash - path);
     // *filename = strdup(slash);
+
     char *copy = NULL;
     char *next = NULL;
     char *prnt = NULL;
@@ -146,8 +140,7 @@ int extract_directory_file(char *dir, char *filename, const char *path) {
  * ignored.  The 'st_ino' field is ignored except if the 'use_ino'
  * mount option is given.
  */
-int nphfuse_getattr(const char *path, struct stat *stbuf)
-{
+int nphfuse_getattr(const char *path, struct stat *stbuf){
     // char filename[54], dir[54];
     // extract_directory_file(dir,filename,path);
     npheap_store *inode = NULL;
@@ -155,8 +148,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
     // log_msg("Searching dir entry: %s\n", *dir);
     // log_msg("Corresponding file entry: %s\n", *filename);
 
-    if(strcmp (path,"/")==0)
-    {
+    if(strcmp (path,"/")==0){
         log_msg("Calling getRootDirectory() \n");
         inode = getRootDirectory();
         if(inode==NULL)
@@ -277,58 +269,58 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev)
 /** Create a directory */
 int nphfuse_mkdir(const char *path, mode_t mode)
 {
-    // char *filename, *dir;
-    // extract_directory_file(&dir,&filename,path);
-    // struct timeval currTime;
-    // npheap_store *temp = NULL;
-    // uint64_t       offset = 0;
-    // uint64_t       index = 0;
-    // uint64_t       found = -1;
-    // for(offset = 2; offset < 52; offset++){
-    //     temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
-    //     if(temp==NULL)
-    //     {
-    //         log_msg("NPheap alloc failed for offset : %d",offset);
-    //     }
-    //     for (index = 0; index < 32; index++)
-    //     {
-    //         if ((strcmp (temp[index].dirname[0], '\0')) &&
-    //             (strcmp (temp[index].filename[0], '\0')))
-    //         {
-    //             /* Entry found in inode block */
-    //             found=index;
-    //             break;
-    //         }
-    //     }
-    //     if(found!=-1)
-    //     {
-    //         break;
-    //     }
-    // }
-    // if(found != -1)
-    // {
-    //     if(dir == NULL){
-    //         dir = "/";
-    //     }
-    //     strcpy(temp[found].dirname, dir);
-    //     strcpy(temp[found].filename, filename);
-    //     temp[found].mystat.st_ino = 1;
-    //     temp[found].mystat.st_mode = S_IFDIR | mode;
-    //     temp[found].mystat.st_nlink = 1;
-    //     temp[found].mystat.st_size = BLOCK_SIZE;
-    //     temp[found].mystat.st_uid = getuid();
-    //     temp[found].mystat.st_gid = getgid();
-    //     gettimeofday(&currTime, NULL);
-    //     temp[found].mystat.st_atime = currTime.tv_sec;
-    //     temp[found].mystat.st_mtime = currTime.tv_sec;
-    //     temp[found].mystat.st_ctime = currTime.tv_sec;
-    //     return 0;
-    // }
-    // else
-    // {
-    //     log_msg("Directory not found. \n");
-    //     return -ENOENT;    
-    // }
+    char *filename, *dir;
+    extract_directory_file(&dir,&filename,path);
+    struct timeval currTime;
+    npheap_store *temp = NULL;
+    uint64_t       offset = 0;
+    uint64_t       index = 0;
+    uint64_t       found = -1;
+    for(offset = 2; offset < 52; offset++){
+        temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
+        if(temp==NULL)
+        {
+            log_msg("NPheap alloc failed for offset : %d",offset);
+        }
+        for (index = 0; index < 32; index++)
+        {
+            if ((strcmp (temp[index].dirname[0], '\0')) &&
+                (strcmp (temp[index].filename[0], '\0')))
+            {
+                /* Entry found in inode block */
+                found=index;
+                break;
+            }
+        }
+        if(found!=-1)
+        {
+            break;
+        }
+    }
+    if(found != -1)
+    {
+        if(dir == NULL){
+            dir = "/";
+        }
+        strcpy(temp[found].dirname, dir);
+        strcpy(temp[found].filename, filename);
+        temp[found].mystat.st_ino = 1;
+        temp[found].mystat.st_mode = S_IFDIR | mode;
+        temp[found].mystat.st_nlink = 1;
+        temp[found].mystat.st_size = BLOCK_SIZE;
+        temp[found].mystat.st_uid = getuid();
+        temp[found].mystat.st_gid = getgid();
+        gettimeofday(&currTime, NULL);
+        temp[found].mystat.st_atime = currTime.tv_sec;
+        temp[found].mystat.st_mtime = currTime.tv_sec;
+        temp[found].mystat.st_ctime = currTime.tv_sec;
+        return 0;
+    }
+    else
+    {
+        log_msg("Directory not found. \n");
+        return -ENOENT;    
+    }
 
     return 0;
 }
@@ -599,50 +591,65 @@ int nphfuse_removexattr(const char *path, const char *name)
  */
 int nphfuse_opendir(const char *path, struct fuse_file_info *fi)
 {
-    char *filename, *dir;
-    extract_directory_file(&dir,&filename,path);
-    npheap_store *temp;
+    // char *filename, *dir;
+    // extract_directory_file(&dir,&filename,path);
+    npheap_store *inode = NULL;
 
-    uint64_t       offset = 0;
-    uint64_t       index = 0;
-    uint64_t       found = -1;
-    for(offset = 2; offset < 52; offset++){
-        temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
-        if(temp==NULL)
+    if(strcmp (path,"/")==0){
+        log_msg("Calling getRootDirectory() \n");
+        inode = getRootDirectory();
+        if(inode==NULL)
         {
-            log_msg("NPheap alloc failed for offset : %d",offset);
+            log_msg("Root directory not found. \n");
+            return -ENOENT;
         }
-        for (index = 0; index < 32; index++)
+        else
         {
-            if ((!strcmp (temp[index].dirname, dir)) &&
-                (!strcmp (temp[index].filename, filename)))
-            {
-                /* Entry found in inode block */
-                found=index;
-                break;
+            log_msg("Root directory found. \n");
+            memcpy(stbuf, &inode->mystat, sizeof(struct stat));
+            //Check if accessibilty can be given
+            int flag_inner = 0;
+            if(getuid() == 0 || getgid() == 0){
+                flag_inner = 1;
             }
+            if(flag_inner != 1){
+                if(inode->mystat.st_uid == getuid() || inode->mystat.st_gid == getgid()){
+                    flag_inner = 1;
+                }
+            }
+
+            //if couldn't give access
+            if(flag_inner != 1){
+                return -EACCES;
+            }
+            return 0;
         }
-        if(found!=-1)
-        {
-            break;
-        }
-    }
-    if(found != -1)
-    {
-        log_msg("Directory found. \n");
-        fi->fh = (intptr_t) &temp[found];
-        log_msg("Checking if user has access to the file \n");
-        
-        
-        return 0;
-    }
-    else
-    {
-        log_msg("Directory not found. \n");
-        return -ENOENT;    
     }
 
-    return -ENOENT;
+    inode = retrieve_inode(path);
+
+    if(inode == NULL){
+        log_msg("Couldn't find path - %s - in OPENDIR.\n", path);
+        return -ENOENT;
+    }
+
+    //Check if accessibilty can be given
+    int flag = 0;
+    if(getuid() == 0 || getgid() == 0){
+        flag = 1;
+    }
+    if(flag != 1){
+        if(inode->mystat.st_uid == getuid() || inode->mystat.st_gid == getgid()){
+            flag = 1;
+        }
+    }
+
+    //if couldn't give access
+    if(flag != 1){
+        return -EACCES;
+    }
+    //else return correct value
+    return 0;
 }
 
 /** Read directory
