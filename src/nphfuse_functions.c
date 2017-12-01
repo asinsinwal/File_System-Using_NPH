@@ -30,7 +30,7 @@ extern struct nphfuse_state *nphfuse_data;
 
 int npheap_fd = 1;
 uint64_t inode_off = 2;
-uint64_t data_off = 2000;
+uint64_t data_off = 504;
 
 //Getting the root directory
 static npheap_store *getRootDirectory(void){
@@ -62,7 +62,7 @@ static npheap_store *retrieve_inode(const char *path){
     }
 
     //Iterate through the inodes
-    for(offset = 2; offset < 52; offset++){
+    for(offset = 2; offset < 502; offset++){
         start = (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
         log_msg("Into inode loop for offset %d\n", offset);
         if(start == 0){
@@ -88,7 +88,7 @@ static npheap_store *get_free_inode(uint64_t *ind_val){
     uint64_t index = 0;
     log_msg("Into get free inode function.\n");
 
-    for(offset = 2; offset < 52; offset++){
+    for(offset = 2; offset < 502; offset++){
         temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
         log_msg("INODE main loop.\n");
         //If returned value is null
@@ -387,7 +387,7 @@ int nphfuse_rmdir(const char *path)
     uint64_t       offset = 0;
     uint64_t       index = 0;
     uint64_t       found = -1;
-    for(offset = 2; offset < 52; offset++){
+    for(offset = 2; offset < 1000; offset++){
         temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
         if(temp==NULL)
         {
@@ -760,7 +760,7 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
         return -ENOENT;
     }
 
-    for(u_offset = 2; u_offset < 52; u_offset++){
+    for(u_offset = 2; u_offset < 502; u_offset++){
         temp= (npheap_store *)npheap_alloc(npheap_fd, u_offset, BLOCK_SIZE);
         if(temp==NULL){
             log_msg("NPheap alloc failed for offset : %d\n",u_offset);
@@ -866,7 +866,7 @@ static void initialAllocationNPheap(void){
 
     log_msg("Allocation done for npheap %d.\n", npheap_getsize(npheap_fd, offset));
 
-    for(offset = 2; offset < 52; offset++){
+    for(offset = 2; offset < 502; offset++){
         //log_msg("Inode allocation for %d offset\n", offset);
         if(npheap_getsize(npheap_fd, offset)==0){
             block_dt = npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
