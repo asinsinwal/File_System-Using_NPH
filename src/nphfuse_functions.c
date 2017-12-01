@@ -395,7 +395,35 @@ int nphfuse_unlink(const char *path){
     npheap_store *inode = NULL;
     log_msg("Into UNLINK for %s\n", path);
 
-    return -1;
+    //Root directory cannot be deleted.
+    if(strcpy(path,"/")==0){
+        return -EACCES;
+    }
+
+    inode = retrieve_inode(path);
+
+    if(inode==NULL){
+        return -ENOENT;
+    }
+
+    //Check for permission
+    int flag = checkAccess(inode);
+    if(flag==0){
+        log_msg("Cannot access the directory\n");
+        return - EACCES;
+    }
+
+    //Check for dirname and filename
+    if(npheap_getsize(npheap_fd, inode->offset) != 0){
+        log_msg("Data offset exist. for %d data off\n", inode->offset);
+        npheap_delete(npheap_fd, inode->offset);
+    }
+
+    inode.dirname[0] = '\0';
+    inode.filename[0] = '\0';
+    memset(inode, 0, sizeof(npheap_store));
+    log_msg("Exiting UNLINK.\n");
+    return 0;
 }
 
 /** Remove a directory */
