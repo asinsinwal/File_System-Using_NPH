@@ -728,11 +728,11 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
         }
 
         for (index = 0; index < 32; index++){
-            log_msg("Search directory %s and file %s\n", dir, filename);
+            //log_msg("Search directory %s and file %s\n", dir, filename);
             //log_msg("Current directory %s and file %s\n", temp[index].dirname, temp[index].filename);
             if ((strcmp(temp[index].dirname, dir) == 0) && (strcmp(temp[index].filename, "/")!=0)){
                 /* Entry found in inode block */
-                log_msg("Adding into dirent.\n");
+                log_msg("Adding %s into dirent.\n", temp[index].filename);
                 memset(&de, 0, sizeof(de));
                 strcpy(de.d_name, temp[index].filename);
                 if(filler(buf, temp[index].filename, NULL, 0) !=0){
