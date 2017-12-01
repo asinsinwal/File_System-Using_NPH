@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include <libgen.h>
 
 #define BLOCK_SIZE 8192
 extern struct nphfuse_state *nphfuse_data;
@@ -122,6 +123,24 @@ static npheap_store *get_free_inode(uint64_t *ind_val){
 }
 
 int extract_directory_file(char *dir, char *filename, const char *path) {
+    char *dirc, *basec, *bname, *dname;
+    dirc = strdup(path);
+    basec = strdup(path);
+    dname = dirname(dirc);
+    bname = basename(basec);
+    memset(dir, 0, 236);
+    memset(filename, 0, 128);
+    if(!strcpy(dir, dname)){
+        return 1;
+    }
+    if(!strcpy(filename, bname)){
+        return 1;
+    }
+    log_msg("Extracting: Directory is %s and Filename is %s for path\n", dir, filename, path);    
+    return 0;
+}
+/*
+int extract_directory_file(char *dir, char *filename, const char *path) {
     // char *slash = path, *next;
     // while ((next = strpbrk(slash + 1, "\\/"))) slash = next;
     // if (path != slash) slash++;
@@ -172,6 +191,7 @@ int extract_directory_file(char *dir, char *filename, const char *path) {
     free(copy);
     return 0;
 }
+*/
 
 int checkAccess(npheap_store *inode){
     //Temperory flag
@@ -241,8 +261,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf){
 // null.  So, the size passed to to the system readlink() must be one
 // less than the size passed to nphfuse_readlink()
 // nphfuse_readlink() code by Bernardo F Costa (thanks!)
-int nphfuse_readlink(const char *path, char *link, size_t size)
-{
+int nphfuse_readlink(const char *path, char *link, size_t size){
     return -1;
 }
 
@@ -297,7 +316,7 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev){
 
     //Set the offset for data object
     if(npheap_getsize(npheap_fd, data_off) != 0){
-        log_msg("Cannot allocate memory for data. Reverting...");
+        log_msg("Cannot allocate memory for data on %d offset. Reverting...\n", data_off);
         inode_off--;
         return -ENOSPC;
     }
@@ -315,9 +334,8 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev){
     //Everything worked fine
     memset(data_block, 0, BLOCK_SIZE);
     inode->offset = data_off;
+    log_msg("mknod ran successfully in NPHeap for %d data offset\n", data_off);
     data_off++;
-
-    log_msg("mknod ran successfully in NPHeap");
     return 0;
 }
 
@@ -372,55 +390,84 @@ int nphfuse_mkdir(const char *path, mode_t mode){
 }
 
 /** Remove a file */
-int nphfuse_unlink(const char *path)
-{
-    return -1;
+int nphfuse_unlink(const char *path){
+    //Individual file delete
+    npheap_store *inode = NULL;
+    log_msg("Into UNLINK for %s\n", path);
+
+    //Root directory cannot be deleted.
+    if(strcmp(path,"/")==0){
+        return -EACCES;
+    }
+
+    inode = retrieve_inode(path);
+
+    if(inode==NULL){
+        return -ENOENT;
+    }
+
+    //Check for permission
+    int flag = checkAccess(inode);
+    if(flag==0){
+        log_msg("Cannot access the directory\n");
+        return - EACCES;
+    }
+
+    //Check for dirname and filename
+    if(npheap_getsize(npheap_fd, inode->offset) != 0){
+        log_msg("Data offset exist. for %d data off\n", inode->offset);
+        npheap_delete(npheap_fd, inode->offset);
+    }
+
+    inode->dirname[0] = '\0';
+    inode->filename[0] = '\0';
+    memset(inode, 0, sizeof(npheap_store));
+    log_msg("Exiting UNLINK.\n");
+    return 0;
 }
 
 /** Remove a directory */
-int nphfuse_rmdir(const char *path)
-{
-    char *filename, *dir;
-    extract_directory_file(&dir,&filename,path);
-    npheap_store *temp;
+int nphfuse_rmdir(const char *path){
+    //unlink is also called
+    log_msg("Into RMDIR.\n");
+    char dir[236];
+    char filename[128];
+    npheap_store *inode = NULL;
+    uint64_t offset = 2;
+    int index = 0;
 
-    uint64_t       offset = 0;
-    uint64_t       index = 0;
-    uint64_t       found = -1;
+    int extract = extract_directory_file(dir,filename,path);
+
+    if(extract==1){
+        log_msg("Cannot extraxt path in rmdir.\n");
+        return -ENOENT;
+    }
+
     for(offset = 2; offset < 1000; offset++){
-        temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
-        if(temp==NULL)
+        inode= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
+        if(inode==NULL)
         {
             log_msg("NPheap alloc failed for offset : %d",offset);
         }
         for (index = 0; index <16; index++)
         {
-            if ((!strcmp (temp[index].dirname, dir)) &&
-                (!strcmp (temp[index].filename, filename)))
-            {
-                /* Entry found in inode block */
-                found=index;
-                break;
+            if ((!strcmp (inode[index].dirname, dir)) &&
+                (!strcmp (inode[index].filename, filename))){
+                    log_msg("%s directory and %s filename \n", dir, filename);
+
+                    int flag = checkAccess(inode);
+                    if(flag==0){
+                        log_msg("Cannot access the directory\n");
+                        return - EACCES;
+                    }
+                    
+                    inode[index].dirname[0] = '\0';
+                    inode[index].filename[0] = '\0';
+                    memset(&inode[index], 0, sizeof(npheap_store));
+                    log_msg("Directory deleted\n");
+                    return 0;
             }
         }
-        if(found!=-1)
-        {
-            break;
-        }
-    }
-    if(found != -1)
-    {
-        log_msg("Directory found. \n");
-        temp[found].filename[0] = '\0';
-        temp[found].dirname[0] = '\0';
-        memset(&temp[found].mystat, 0, sizeof(struct stat));
-        log_msg("Directory deleted \n");
-        return 0;
-    }
-    else
-    {
-        log_msg("Directory not found. \n");
-        return -ENOENT;    
     }
     return -1;
 }
@@ -439,6 +486,9 @@ int nphfuse_symlink(const char *path, const char *link)
 // both path and newpath are fs-relative
 int nphfuse_rename(const char *path, const char *newpath)
 {
+    log_msg("Rename called for %s path to %s newpath\n", path, newpath);
+
+
     return -1;
 }
 
@@ -449,15 +499,119 @@ int nphfuse_link(const char *path, const char *newpath)
 }
 
 /** Change the permission bits of a file */
-int nphfuse_chmod(const char *path, mode_t mode)
-{
+int nphfuse_chmod(const char *path, mode_t mode){
+    log_msg("Entry into CHMOD.\n");
+    npheap_store *inode = NULL;
+    struct timeval currTime;
+
+    if(strcmp (path,"/")==0){
+        log_msg("Calling getRootDirectory() in CHOWN.\n");
+        
+        inode = getRootDirectory();
+        if(inode==NULL)
+        {
+            log_msg("Root directory not found. in CHOWN.\n");
+            return -ENOENT;
+        }
+        else
+        {
+            log_msg("Root directory found. in CHOWN.\n");
+            //Check if accessibilty can be given
+            int flag = checkAccess(inode);
+            //Deny the access
+            if(flag == 0){
+                return -EACCES;
+            }
+            //else set correct value
+            log_msg("Owner of root  changed in CHOWN.\n", path);
+            gettimeofday(&currTime, NULL);
+            inode->mystat.st_mode = mode;
+            inode->mystat.st_ctime = currTime.tv_sec;
+            log_msg("Exit from CHMOD.\n");
+            return 0;
+        }
+    }
+    
+    inode = retrieve_inode(path);
+    
+    if(inode == NULL){
+        log_msg("Couldn't find path - %s - in CHOWN.\n", path);
         return -ENOENT;
+    }
+    //Check Accessibility
+    int flag1 = checkAccess(inode);
+    
+    //Deny the access
+    if(flag1 == 0){
+        return -EACCES;
+    }
+    
+    //else set correct value
+    log_msg("Owner of path - %s - changed in CHOWN.\n", path);
+    gettimeofday(&currTime, NULL);
+    inode->mystat.st_mode = mode;
+    inode->mystat.st_ctime = currTime.tv_sec;
+    log_msg("Exit from CHMOD.\n");
+    return 0;
 }
 
 /** Change the owner and group of a file */
-int nphfuse_chown(const char *path, uid_t uid, gid_t gid)
-{
+int nphfuse_chown(const char *path, uid_t uid, gid_t gid){
+    log_msg("Entry into CHOWN.\n");
+    npheap_store *inode = NULL;
+    struct timeval currTime;
+
+    if(strcmp (path,"/")==0){
+        log_msg("Calling getRootDirectory() in CHOWN.\n");
+        
+        inode = getRootDirectory();
+        if(inode==NULL)
+        {
+            log_msg("Root directory not found. in CHOWN.\n");
+            return -ENOENT;
+        }
+        else
+        {
+            log_msg("Root directory found. in CHOWN.\n");
+            //Check if accessibilty can be given
+            int flag = checkAccess(inode);
+            //Deny the access
+            if(flag == 0){
+                return -EACCES;
+            }
+            //else set correct value
+            log_msg("Owner of root  changed in CHOWN.\n", path);
+            gettimeofday(&currTime, NULL);
+            inode->mystat.st_uid = uid;
+            inode->mystat.st_gid = gid;
+            inode->mystat.st_ctime = currTime.tv_sec;
+            log_msg("Exit from CHOWN.\n");
+            return 0;
+        }
+    }
+    
+    inode = retrieve_inode(path);
+    
+    if(inode == NULL){
+        log_msg("Couldn't find path - %s - in CHOWN.\n", path);
         return -ENOENT;
+    }
+    //Check Accessibility
+    int flag1 = checkAccess(inode);
+    
+    //Deny the access
+    if(flag1 == 0){
+        return -EACCES;
+    }
+    
+    //else set correct value
+    log_msg("Owner of path - %s - changed in CHOWN.\n", path);
+    gettimeofday(&currTime, NULL);
+    inode->mystat.st_uid = uid;
+    inode->mystat.st_gid = gid;
+    inode->mystat.st_ctime = currTime.tv_sec;
+    log_msg("Exit from CHOWN.\n");
+    return 0;
 }
 
 /** Change the size of a file */
@@ -467,9 +621,59 @@ int nphfuse_truncate(const char *path, off_t newsize)
 }
 
 /** Change the access and/or modification times of a file */
-int nphfuse_utime(const char *path, struct utimbuf *ubuf)
-{
+int nphfuse_utime(const char *path, struct utimbuf *ubuf){
+    log_msg("Into utime.\n");
+    npheap_store *temp = NULL;
+
+    if(strcmp(path,"/")==0){
+        temp = getRootDirectory();
+        if(temp==NULL)
+        {
+            log_msg("Root directory not found in utime.\n");
+            return -ENOENT;
+        }
+        else
+        {
+            int flag = checkAccess(temp);
+            if(flag==0){
+                log_msg("Cannot access in root.\n");
+                return - EACCES;
+            }
+
+            // Set from ubuf
+            if(ubuf->actime){
+                temp->mystat.st_atime = ubuf->actime;
+            }
+            if(ubuf->modtime){
+                temp->mystat.st_mtime = ubuf->modtime;
+            }
+            log_msg("Ubuf ran successfully.! \n");
+            return 0;
+        }
+    }
+
+    temp = retrieve_inode(path);
+
+    if(temp==0){
+        log_msg("Cannot find the inode in ubuf.\n");
         return -ENOENT;
+    }
+
+    int flag1 = checkAccess(temp);
+    if(flag1==0){
+        log_msg("Cannot access the asked inode.\n");
+        return - EACCES;
+    }
+
+    if(ubuf->actime){
+        temp->mystat.st_atime = ubuf->actime;
+    }
+    if(ubuf->modtime){
+        temp->mystat.st_mtime = ubuf->modtime;
+    }
+    log_msg("Ubuf ran successfully.! \n");
+    return 0;
+
 }
 
 /** File open operation
@@ -482,8 +686,7 @@ int nphfuse_utime(const char *path, struct utimbuf *ubuf)
  *
  * Changed in version 2.2
  */
-int nphfuse_open(const char *path, struct fuse_file_info *fi)
-{
+int nphfuse_open(const char *path, struct fuse_file_info *fi){
     struct timeval currTime;
     npheap_store *temp = NULL;
 
@@ -545,8 +748,7 @@ int nphfuse_open(const char *path, struct fuse_file_info *fi)
 // can return with anything up to the amount of data requested. nor
 // with the fusexmp code which returns the amount of data also
 // returned by read.
-int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
-{
+int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi){
     return -ENOENT;
 }
 
@@ -558,8 +760,7 @@ int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct 
  *
  */
 int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
-	     struct fuse_file_info *fi)
-{
+	     struct fuse_file_info *fi){
     return -ENOENT;
 }
 
@@ -570,8 +771,7 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
  * Replaced 'struct statfs' parameter with 'struct statvfs' in
  * version 2.5
  */
-int nphfuse_statfs(const char *path, struct statvfs *statv)
-{
+int nphfuse_statfs(const char *path, struct statvfs *statv){
     return -1;
 }
 
@@ -600,8 +800,7 @@ int nphfuse_statfs(const char *path, struct statvfs *statv)
  */
 
 // this is a no-op in NPHFS.  It just logs the call and returns success
-int nphfuse_flush(const char *path, struct fuse_file_info *fi)
-{
+int nphfuse_flush(const char *path, struct fuse_file_info *fi){
     log_msg("\nnphfuse_flush(path=\"%s\", fi=0x%08x)\n", path, fi);
     // no need to get fpath on this one, since I work from fi->fh not the path
     log_fi(fi);
@@ -740,8 +939,7 @@ int nphfuse_opendir(const char *path, struct fuse_file_info *fi){
  */
 
 int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset,
-	       struct fuse_file_info *fi)
-{
+	       struct fuse_file_info *fi){
     
     npheap_store *temp = NULL;
     struct dirent de;
@@ -785,8 +983,7 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
 
 /** Release directory
  */
-int nphfuse_releasedir(const char *path, struct fuse_file_info *fi)
-{
+int nphfuse_releasedir(const char *path, struct fuse_file_info *fi){
     log_msg("Into release dir \n");
     return 0;
 }
@@ -800,8 +997,7 @@ int nphfuse_releasedir(const char *path, struct fuse_file_info *fi)
  */
 // when exactly is this called?  when a user calls fsync and it
 // happens to be a directory? ??? 
-int nphfuse_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi)
-{
+int nphfuse_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi){
     return 0;
 }
 
@@ -821,8 +1017,7 @@ int nphfuse_access(const char *path, int mask){
  *
  * Introduced in version 2.5
  */
-int nphfuse_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi)
-{
+int nphfuse_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi){
     return -1;
 }
 
@@ -891,8 +1086,7 @@ static void initialAllocationNPheap(void){
 }
 
 
-void *nphfuse_init(struct fuse_conn_info *conn)
-{
+void *nphfuse_init(struct fuse_conn_info *conn){
     log_msg("\nnphfuse_init()\n");
     log_conn(conn);
     log_fuse_context(fuse_get_context());
@@ -909,7 +1103,6 @@ void *nphfuse_init(struct fuse_conn_info *conn)
  *
  * Introduced in version 2.3
  */
-void nphfuse_destroy(void *userdata)
-{
+void nphfuse_destroy(void *userdata){
     log_msg("\nnphfuse_destroy(userdata=0x%08x)\n", userdata);
 }
