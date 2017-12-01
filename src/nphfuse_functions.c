@@ -30,30 +30,110 @@ extern struct nphfuse_state *nphfuse_data;
 
 int npheap_fd = 1;
 uint64_t inode_off = 3;
-uint64_t data_off = 18000;
+uint64_t data_off = 2000;
+char *data[10999];
 
 //Getting the root directory
 static npheap_store *getRootDirectory(void){
-    npheap_store *temp = NULL;
+    npheap_store *temp1 = NULL;
 
     log_msg("Get the root directory. \n");
-    temp = (npheap_store *)npheap_alloc(npheap_fd, 2, BLOCK_SIZE);
+    temp1 = (npheap_store *)npheap_alloc(npheap_fd, 2, BLOCK_SIZE);
 
-    if(temp == NULL){
+    if(temp1 == NULL){
         log_msg("Root directory was not found.\n");
         return NULL;
     }
-
-    log_msg("Root directory created. \n");
-    return &(temp[0]);
+    //
+    log_msg("Root directory found, linking to %d with %d size. \n", (&temp1[0]).mystat->st_nlink, (&temp1[0].st_size));
+    //
+    return &(temp1[0]);
 }
 
-void extract_directory_file(char** dir, char** filename, char *path) {
-    char *slash = path, *next;
-    while ((next = strpbrk(slash + 1, "\\/"))) slash = next;
-    if (path != slash) slash++;
-    *dir = strndup(path, slash - path);
-    *filename = strdup(slash);
+static npheap_store *retrieve_inode(const char *path){
+    char dir[54];
+    char filename[54];
+    uint64_t offset = 2;
+    npheap_store *start = NULL;
+
+    //Check if root directory
+    if(strcmp(path,"/") == 0){
+        log_msg("Root directory inode is asked.");
+        return getRootDirectory();
+    }
+
+    //Get from directory
+    int extract = extract_directory_file(dir, filename, path);
+
+    if(extract == 1){
+        return NULL;
+    }
+
+    //Iterate through the inodes
+    for(offset = 2; offset < 52; offset++){
+        start = (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
+        log_msg("Into inode loop for offset %d\n", offset);
+        if(start == 0){
+            log_msg("Couldn't allocate the memory for offset, something went wrong\n");
+            return NULL;
+        }
+
+        for(int i = 0; i < 32; i++){
+            if((strcmp(npheap_store[i].dirname, dir)==0) && strcmp(npheap_store[i].filename, filename)==0){
+                return &npheap_store[i];
+            }
+        }
+    }
+    //Didn't find the inode for given path
+    return NULL;
+}
+
+int extract_directory_file(char *dir, char *filename, const char *path) {
+    // char *slash = path, *next;
+    // while ((next = strpbrk(slash + 1, "\\/"))) slash = next;
+    // if (path != slash) slash++;
+    // *dir = strndup(path, slash - path);
+    // *filename = strdup(slash);
+    char *copy = NULL;
+    char *next = NULL;
+    char *prnt = NULL;
+
+    if(!path || !dir || !filename){
+        return 1;
+    }
+    memset(dir, 0, 54);
+    memset(filename, 0, 54);
+
+    if(!strcmp(path, "/")){
+        strcpy(dir, "/");
+        strcpy(filename, "/");
+        return 0;
+    }
+
+    copy = strdup(path);
+
+    next = strtok(copy, "/");
+    if(!next){
+        log_msg("Splitting into tokens\n");
+        free(copy);
+        return 1;
+    }
+
+    prnt = next;
+
+    while((next = strtok(NULL, "/")) != NULL){
+        strncat(dir, "/", 54);
+        strncat(dir, prev, 54);
+        prnt = next;
+    }
+
+    if(dir[0] == '\0'){
+        strcpy(dir, "/");
+    }
+    strncpy(filename, prnt, 54);
+
+    free(copy);
+    return 0;
 }
 ///////////////////////////////////////////////////////////
 //
@@ -68,12 +148,12 @@ void extract_directory_file(char** dir, char** filename, char *path) {
  */
 int nphfuse_getattr(const char *path, struct stat *stbuf)
 {
-    char *filename, *dir;
-    extract_directory_file(&dir,&filename,path);
-    npheap_store *temp = NULL;
+    // char filename[54], dir[54];
+    // extract_directory_file(dir,filename,path);
+    npheap_store *inode = NULL;
     
-    log_msg("Searching dir entry: %s\n", *dir);
-    log_msg("Corresponding file entry: %s\n", *filename);
+    // log_msg("Searching dir entry: %s\n", *dir);
+    // log_msg("Corresponding file entry: %s\n", *filename);
 
     if(strcmp (path,"/")==0)
     {
@@ -90,41 +170,15 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
         }
     }
 
-    uint64_t       offset = 0;
-    uint64_t       index = 0;
-    uint64_t       found = -1;
-    for(offset = 2; offset < 52; offset++){
-        temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
-        if(temp==NULL)
-        {
-            log_msg("NPheap alloc failed for offset : %d",offset);
-        }
-        for (index = 0; index < 32; index++)
-        {
-            if ((!strcmp (temp[index].dirname, dir)) &&
-                (!strcmp (temp[index].filename, filename)))
-            {
-                /* Entry found in inode block */
-                found=index;
-                break;
-            }
-        }
-        if(found!=-1)
-        {
-            break;
-        }
+    inode = retrieve_inode(path);
+
+    if(inode == NULL){
+        return -ENOENT;
     }
-    if(found != -1)
-    {
-        log_msg("Directory found. \n");
-        memcpy (stbuf, &temp[found].mystat, sizeof(struct stat));
-        return 0;
-    }
-    else
-    {
-        log_msg("Directory not found. \n");
-        return -ENOENT;    
-    }
+
+    // else return the proper value
+    memcpy(stbuf, &inode->mystat, sizeof(struct stat));
+    return 0;
 }
 
 /** Read the target of a symbolic link
@@ -731,11 +785,11 @@ static void initialAllocationNPheap(void){
     log_msg("Allocation started for %d.\n", offset);
 
     if(npheap_getsize(npheap_fd, offset) == 0){
-        log_msg("Allocating superblock.!\n");
+        log_msg("Allocating root block into NPHeap!\n");
         block_dt = (char *)npheap_alloc(npheap_fd,offset, 8192);
 
         if(block_dt == NULL){
-            log_msg("Allocation of superblock failed.\n");
+            log_msg("Allocation of root block failed.\n");
             return;
         }
         memset(block_dt,0, npheap_getsize(npheap_fd, offset));
@@ -744,10 +798,12 @@ static void initialAllocationNPheap(void){
     log_msg("Allocation done for npheap %d.\n", npheap_getsize(npheap_fd, offset));
 
     for(offset = 2; offset < 52; offset++){
-        if(npheap_getsize(npheap_fd, offset)){
+        //log_msg("Inode allocation for %d offset\n", offset);
+        if(npheap_getsize(npheap_fd, offset)==0){
             block_dt = npheap_alloc(npheap_fd, offset, 8192);
             memset(block_dt, 0, npheap_getsize(npheap_fd, offset));
         }
+        log_msg("Inode allocation for %d offset and %d size\n", offset,(npheap_getsize(npheap_fd, offset)));
     }
 
     head_dir = getRootDirectory();
@@ -758,7 +814,7 @@ static void initialAllocationNPheap(void){
     inode_off++;
     head_dir->mystat.st_mode = S_IFDIR | 0755;
     head_dir->mystat.st_nlink = 2;
-    head_dir->mystat.st_size = npheap_getsize(npheap_fd,2);
+    head_dir->mystat.st_size = npheap_getsize(npheap_fd,1);
     head_dir->mystat.st_uid = getuid();
     head_dir->mystat.st_gid = getgid();
 
@@ -771,6 +827,7 @@ void *nphfuse_init(struct fuse_conn_info *conn)
     log_msg("\nnphfuse_init()\n");
     log_conn(conn);
     log_fuse_context(fuse_get_context());
+    log_msg("Into init function \n");
     initialAllocationNPheap();
 
     return NPHFS_DATA;
