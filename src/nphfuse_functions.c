@@ -126,8 +126,25 @@ int extract_directory_file(char *dir, char *filename, const char *path) {
     }
     strncpy(filename, prnt, 54);
 
+    log_msg("Directory is %s and Filename is %s\n", dir, filename);
+
     free(copy);
     return 0;
+}
+
+int checkAccess(npheap_store *inode){
+    //Temperory flag
+    int flag = 0;
+    if(getuid() == 0 || getgid() == 0){
+        flag = 1;
+    }
+    if(flag != 1){
+        if(inode->mystat.st_uid == getuid() || inode->mystat.st_gid == getgid()){
+            flag = 1;
+        }
+    }
+    //else return correct value
+    return flag;
 }
 ///////////////////////////////////////////////////////////
 //
@@ -265,6 +282,7 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev)
 
     return -ENOENT;
 }
+
 
 /** Create a directory */
 int nphfuse_mkdir(const char *path, mode_t mode)
@@ -589,8 +607,7 @@ int nphfuse_removexattr(const char *path, const char *name)
  *
  * Introduced in version 2.3
  */
-int nphfuse_opendir(const char *path, struct fuse_file_info *fi)
-{
+int nphfuse_opendir(const char *path, struct fuse_file_info *fi){
     // char *filename, *dir;
     // extract_directory_file(&dir,&filename,path);
     npheap_store *inode = NULL;
@@ -607,18 +624,9 @@ int nphfuse_opendir(const char *path, struct fuse_file_info *fi)
         {
             log_msg("Root directory found. \n");
             //Check if accessibilty can be given
-            int flag_inner = 0;
-            if(getuid() == 0 || getgid() == 0){
-                flag_inner = 1;
-            }
-            if(flag_inner != 1){
-                if(inode->mystat.st_uid == getuid() || inode->mystat.st_gid == getgid()){
-                    flag_inner = 1;
-                }
-            }
-
-            //if couldn't give access
-            if(flag_inner != 1){
+            int flag = checkAccess(inode);
+            //Deny the access
+            if(flag == 0){
                 return -EACCES;
             }
             return 0;
@@ -631,20 +639,11 @@ int nphfuse_opendir(const char *path, struct fuse_file_info *fi)
         log_msg("Couldn't find path - %s - in OPENDIR.\n", path);
         return -ENOENT;
     }
+    //Check Accessibility
+    int flag1 = checkAccess(inode);
 
-    //Check if accessibilty can be given
-    int flag = 0;
-    if(getuid() == 0 || getgid() == 0){
-        flag = 1;
-    }
-    if(flag != 1){
-        if(inode->mystat.st_uid == getuid() || inode->mystat.st_gid == getgid()){
-            flag = 1;
-        }
-    }
-
-    //if couldn't give access
-    if(flag != 1){
+    //Deny the access
+    if(flag1 == 0){
         return -EACCES;
     }
     //else return correct value
