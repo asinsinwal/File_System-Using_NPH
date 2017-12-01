@@ -49,8 +49,8 @@ static npheap_store *getRootDirectory(void){
 }
 
 static npheap_store *retrieve_inode(const char *path){
-    char dir[54];
-    char filename[54];
+    char dir[236];
+    char filename[128];
     uint64_t offset = 2;
     npheap_store *start = NULL;
 
@@ -71,7 +71,7 @@ static npheap_store *retrieve_inode(const char *path){
             return NULL;
         }
 
-        for(int i = 0; i < 32; i++){
+        for(int i = 0; i < 16; i++){
             if((strcmp(start[i].dirname, dir)==0) && (strcmp(start[i].filename, filename)==0)){
                 return &start[i];
             }
@@ -97,7 +97,7 @@ static npheap_store *get_free_inode(uint64_t *ind_val){
             log_msg("NPheap alloc failed for offset : %d\n",offset);
         }
         // internal block check
-        for (index = 0; index < 32; index++){
+        for (index = 0; index < 16; index++){
             log_msg("Search %d in offset %d for free inode\n", index, offset);
             if (temp[index].dirname[0] == '\0' &&
                 temp[index].filename[0] == '\0'){
@@ -136,8 +136,8 @@ int extract_directory_file(char *dir, char *filename, const char *path) {
     if(!path){
         return 1;
     }
-    memset(dir, 0, 54);
-    memset(filename, 0, 54);
+    memset(dir, 0, 236);
+    memset(filename, 0, 128);
 
     if(!strcmp(path, "/")){
         strcpy(dir, "/");
@@ -158,15 +158,15 @@ int extract_directory_file(char *dir, char *filename, const char *path) {
     prnt = next;
 
     while((next = strtok(NULL, "/")) != NULL){
-        strncat(dir, "/", 54);
-        strncat(dir, prnt, 54);
+        strncat(dir, "/", 236);
+        strncat(dir, prnt, 128);
         prnt = next;
     }
 
     if(dir[0] == '\0'){
         strcpy(dir, "/");
     }
-    strncpy(filename, prnt, 54);
+    strncpy(filename, prnt, 128);
 
     log_msg("Extracting: Directory is %s and Filename is %s for path\n", dir, filename, path);
 
@@ -200,7 +200,6 @@ int checkAccess(npheap_store *inode){
  * mount option is given.
  */
 int nphfuse_getattr(const char *path, struct stat *stbuf){
-    // char filename[54], dir[54];
     // extract_directory_file(dir,filename,path);
     npheap_store *inode = NULL;
     
@@ -256,8 +255,8 @@ int nphfuse_readlink(const char *path, char *link, size_t size)
 int nphfuse_mknod(const char *path, mode_t mode, dev_t dev){
     struct timeval currTime;
     npheap_store *inode = NULL;
-    char dir[54];
-    char filename[54];
+    char dir[236];
+    char filename[128];
     char *data_block = NULL;
     uint64_t findex = -1;
     log_msg("Into mkdir functionality.\n");
@@ -330,8 +329,8 @@ int nphfuse_mkdir(const char *path, mode_t mode){
     // extract_directory_file(&dir,&filename,path);
     struct timeval currTime;
     npheap_store *inode = NULL;
-    char dir[54];
-    char filename[54];
+    char dir[236];
+    char filename[128];
     uint64_t findex = -1;
     log_msg("Into mkdir functionality.\n");
     inode = get_free_inode(&findex);
@@ -395,7 +394,7 @@ int nphfuse_rmdir(const char *path)
         {
             log_msg("NPheap alloc failed for offset : %d",offset);
         }
-        for (index = 0; index < 32; index++)
+        for (index = 0; index <16; index++)
         {
             if ((!strcmp (temp[index].dirname, dir)) &&
                 (!strcmp (temp[index].filename, filename)))
@@ -711,8 +710,8 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
     struct dirent de;
     uint64_t u_offset = 2;
     uint64_t index = 0;
-    char dir[54];
-    char filename[54];
+    char dir[236];
+    char filename[128];
 
     log_msg("Into READDIR function.\n");
     // filler(buf, ".", NULL, 0);
@@ -730,10 +729,10 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
             log_msg("NPheap alloc failed for offset : %d\n",u_offset);
         }
 
-        for (index = 0; index < 32; index++){
+        for (index = 0; index < 16; index++){
             //log_msg("Search directory %s and file %s\n", dir, filename);
             //log_msg("Current directory %s and file %s\n", temp[index].dirname, temp[index].filename);
-            if ((strcmp(temp[index].dirname, dir) == 0) && (strcmp(temp[index].filename, "/")!=0)){
+            if ((strcmp(temp[index].dirname, path) == 0) && (strcmp(temp[index].filename, "/")!=0)){
                 /* Entry found in inode block */
                 log_msg("Adding %s into dirent.\n", temp[index].filename);
                 memset(&de, 0, sizeof(de));
