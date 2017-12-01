@@ -31,7 +31,6 @@ extern struct nphfuse_state *nphfuse_data;
 int npheap_fd = 1;
 uint64_t inode_off = 2;
 uint64_t data_off = 2000;
-char *data[10999];
 
 //Getting the root directory
 static npheap_store *getRootDirectory(void){
@@ -485,11 +484,49 @@ int nphfuse_utime(const char *path, struct utimbuf *ubuf)
  */
 int nphfuse_open(const char *path, struct fuse_file_info *fi)
 {
-    if ((fi->flags & O_ACCMODE) != O_RDONLY)
+    struct timeval currTime;
+    npheap_store *temp = NULL;
+
+    //Check for root directory
+    if(strcmp(path,"/")==0){
+        temp = getRootDirectory();
+        if(temp==NULL)
+        {
+            log_msg("Root directory not found in open.\n");
+            return -ENOENT;
+        }
+        else
+        {
+            int flag = checkAccess(temp);
+
+            //If cannot access
+            if(flag == 0){
+                log_msg("Root access denied.\n");
+                return -EACCES;
+            }
+            // Worked fine
+            log_msg("Access granted to root.\n");
+            return 0;
+        }
+    }
+
+    temp = retrieve_inode(path);
+    if(temp == NULL){
+        return -ENOENT;
+    }
+
+    int flag1 = checkAccess(temp);
+
+    //if cannot access
+    if(flag1 == 0){
+        log_msg("Access denied.\n");
         return -EACCES;
-
-    return -ENOENT;
-
+    }
+    //Everything worked fine
+    fi->fh = temp->mystat.st_ino;
+    gettimeofday(&currTime, NULL);
+    temp->mystat.st_atime = currTime.tv_sec;
+    return 0;
 }
 
 /** Read data from an open file
