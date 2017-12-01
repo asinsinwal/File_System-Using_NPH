@@ -468,12 +468,65 @@ int nphfuse_link(const char *path, const char *newpath)
 /** Change the permission bits of a file */
 int nphfuse_chmod(const char *path, mode_t mode)
 {
+    log_msg("Entry into CHMOD.\n");
+    npheap_store *inode = NULL;
+    struct timeval currTime;
+
+    if(strcmp (path,"/")==0){
+        log_msg("Calling getRootDirectory() in CHOWN.\n");
+        
+        inode = getRootDirectory();
+        if(inode==NULL)
+        {
+            log_msg("Root directory not found. in CHOWN.\n");
+            return -ENOENT;
+        }
+        else
+        {
+            log_msg("Root directory found. in CHOWN.\n");
+            //Check if accessibilty can be given
+            int flag = checkAccess(inode);
+            //Deny the access
+            if(flag == 0){
+                return -EACCES;
+            }
+            //else set correct value
+            log_msg("Owner of root  changed in CHOWN.\n", path);
+            gettimeofday(&currTime, NULL);
+            inode->mystat.st_mode = mode;
+            inode->mystat.st_ctime = currTime.tv_sec;
+            log_msg("Exit from CHMOD.\n");
+            return 0;
+        }
+    }
+    
+    inode = retrieve_inode(path);
+    
+    if(inode == NULL){
+        log_msg("Couldn't find path - %s - in CHOWN.\n", path);
         return -ENOENT;
+    }
+    //Check Accessibility
+    int flag1 = checkAccess(inode);
+    
+    //Deny the access
+    if(flag1 == 0){
+        return -EACCES;
+    }
+    
+    //else set correct value
+    log_msg("Owner of path - %s - changed in CHOWN.\n", path);
+    gettimeofday(&currTime, NULL);
+    inode->mystat.st_mode = mode;
+    inode->mystat.st_ctime = currTime.tv_sec;
+    log_msg("Exit from CHMOD.\n");
+    return 0;
 }
 
 /** Change the owner and group of a file */
 int nphfuse_chown(const char *path, uid_t uid, gid_t gid)
 {
+    log_msg("Entry into CHOWN.\n");
     npheap_store *inode = NULL;
     struct timeval currTime;
 
@@ -501,6 +554,7 @@ int nphfuse_chown(const char *path, uid_t uid, gid_t gid)
             inode->mystat.st_uid = uid;
             inode->mystat.st_gid = gid;
             inode->mystat.st_ctime = currTime.tv_sec;
+            log_msg("Exit from CHOWN.\n");
             return 0;
         }
     }
@@ -525,6 +579,7 @@ int nphfuse_chown(const char *path, uid_t uid, gid_t gid)
     inode->mystat.st_uid = uid;
     inode->mystat.st_gid = gid;
     inode->mystat.st_ctime = currTime.tv_sec;
+    log_msg("Exit from CHOWN.\n");
     return 0;
 }
 
