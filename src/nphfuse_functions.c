@@ -332,7 +332,7 @@ int nphfuse_mkdir(const char *path, mode_t mode)
     char dir[54];
     char filename[54];
     uint64_t findex = -1;
-
+    log_msg("Into mkdir functionality.\n");
     inode = get_free_inode(&findex);
 
     //If empty directory not found
