@@ -419,8 +419,8 @@ int nphfuse_unlink(const char *path){
         npheap_delete(npheap_fd, inode->offset);
     }
 
-    inode.dirname[0] = '\0';
-    inode.filename[0] = '\0';
+    inode->dirname[0] = '\0';
+    inode->filename[0] = '\0';
     memset(inode, 0, sizeof(npheap_store));
     log_msg("Exiting UNLINK.\n");
     return 0;
