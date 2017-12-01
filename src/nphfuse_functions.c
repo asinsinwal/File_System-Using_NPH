@@ -396,7 +396,7 @@ int nphfuse_unlink(const char *path){
     log_msg("Into UNLINK for %s\n", path);
 
     //Root directory cannot be deleted.
-    if(strcpy(path,"/")==0){
+    if(strcmp(path,"/")==0){
         return -EACCES;
     }
 
