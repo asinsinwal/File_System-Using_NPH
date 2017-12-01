@@ -722,7 +722,7 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
     }
 
     for(u_offset = 2; u_offset < 52; u_offset++){
-        temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
+        temp= (npheap_store *)npheap_alloc(npheap_fd, u_offset, BLOCK_SIZE);
         if(temp==NULL){
             log_msg("NPheap alloc failed for offset : %d\n",u_offset);
         }
