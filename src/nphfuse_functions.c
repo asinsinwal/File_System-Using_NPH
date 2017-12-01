@@ -203,20 +203,16 @@ int nphfuse_getattr(const char *path, struct stat *stbuf){
     // extract_directory_file(dir,filename,path);
     npheap_store *inode = NULL;
     
-    // log_msg("Searching dir entry: %s\n", *dir);
-    // log_msg("Corresponding file entry: %s\n", *filename);
-
-    if(strcmp (path,"/")==0){
-        log_msg("Calling getRootDirectory() \n");
+    if(strcmp(path,"/")==0){
         inode = getRootDirectory();
         if(inode==NULL)
         {
-            log_msg("Root directory not found. \n");
+            log_msg("Root directory not found in getattr.\n");
             return -ENOENT;
         }
         else
         {
-            log_msg("Root directory found. \n");
+            log_msg("Assigning root stbuf in getattr\n");
             memcpy(stbuf, &inode->mystat, sizeof(struct stat));
             return 0;
         }
@@ -229,6 +225,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf){
     }
 
     // else return the proper value
+    log_msg("Assigning normal stbuf in getattr\n");
     memcpy(stbuf, &inode->mystat, sizeof(struct stat));
     return 0;
 }
@@ -641,21 +638,20 @@ int nphfuse_opendir(const char *path, struct fuse_file_info *fi){
     // char *filename, *dir;
     // extract_directory_file(&dir,&filename,path);
     npheap_store *inode = NULL;
-
+    log_msg("Entry into OPENDIR.\n");
     if(strcmp (path,"/")==0){
-        log_msg("Calling getRootDirectory() \n");
         inode = getRootDirectory();
         if(inode==NULL)
         {
-            log_msg("Root directory not found. \n");
+            log_msg("Root directory not found in opendir.\n");
             return -ENOENT;
         }
         else
         {
-            log_msg("Root directory found. \n");
             //Check if accessibilty can be given
             int flag = checkAccess(inode);
             //Deny the access
+            log_msg("Root access %d (if 1 then yes)",flag);
             if(flag == 0){
                 return -EACCES;
             }
@@ -673,10 +669,12 @@ int nphfuse_opendir(const char *path, struct fuse_file_info *fi){
     int flag1 = checkAccess(inode);
 
     //Deny the access
+    log_msg("Normal access %d (if 1 then yes)",flag1);
     if(flag1 == 0){
         return -EACCES;
     }
     //else return correct value
+    log_msg("Exit into OPENDIR.\n");
     return 0;
 }
 
@@ -750,7 +748,7 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
  */
 int nphfuse_releasedir(const char *path, struct fuse_file_info *fi)
 {
-    log_msg("");
+    log_msg("Into release dir \n");
     return 0;
 }
 
@@ -768,10 +766,8 @@ int nphfuse_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi)
     return 0;
 }
 
-int nphfuse_access(const char *path, int mask)
-{
+int nphfuse_access(const char *path, int mask){
     return 0;
-//    return -1;
 }
 
 /**
