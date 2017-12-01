@@ -86,7 +86,8 @@ static npheap_store *get_free_inode(uint64_t *ind_val){
     npheap_store *temp = NULL;
     uint64_t offset = 2;
     uint64_t index = 0;
-
+    log_msg("Into get free inode function.\n");
+    
     for(offset = 2; offset < 52; offset++){
         temp= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
         //If returned value is null
