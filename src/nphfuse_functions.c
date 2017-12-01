@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include <libgen.h>
 
 #define BLOCK_SIZE 8192
 extern struct nphfuse_state *nphfuse_data;
@@ -121,7 +122,24 @@ static npheap_store *get_free_inode(uint64_t *ind_val){
     return NULL;
 }
 
-
+int extract_directory_file(char *dir, char *filename, const char *path) {
+    char *dirc, *basec, *bname, *dname;
+    dirc = strdup(path);
+    basec = strdup(path);
+    dname = dirname(dirc);
+    bname = basename(basec);
+    memset(dir, 0, 236);
+    memset(filename, 0, 128);
+    if(!strcpy(dir, dname)){
+        return 1;
+    }
+    if(!strcpy(filename, bname)){
+        return 1;
+    }
+    log_msg("Extracting: Directory is %s and Filename is %s for path\n", dir, filename, path);    
+    return 0;
+}
+/*
 int extract_directory_file(char *dir, char *filename, const char *path) {
     // char *slash = path, *next;
     // while ((next = strpbrk(slash + 1, "\\/"))) slash = next;
@@ -173,6 +191,7 @@ int extract_directory_file(char *dir, char *filename, const char *path) {
     free(copy);
     return 0;
 }
+*/
 
 int checkAccess(npheap_store *inode){
     //Temperory flag
@@ -379,7 +398,7 @@ int nphfuse_unlink(const char *path){
 /** Remove a directory */
 int nphfuse_rmdir(const char *path){
     //unlink is also called
-    log_msg("Into rmdir.\n");
+    log_msg("Into RMDIR.\n");
     char dir[236];
     char filename[128];
     npheap_store *inode = NULL;
@@ -389,6 +408,7 @@ int nphfuse_rmdir(const char *path){
     int extract = extract_directory_file(dir,filename,path);
 
     if(extract==1){
+        log_msg("Cannot extraxt path in rmdir.\n");
         return -ENOENT;
     }
 
@@ -403,6 +423,13 @@ int nphfuse_rmdir(const char *path){
             if ((!strcmp (inode[index].dirname, dir)) &&
                 (!strcmp (inode[index].filename, filename))){
                     log_msg("%s directory and %s filename \n", dir, filename);
+
+                    int flag = checkAccess(inode);
+                    if(flag==0){
+                        log_msg("Cannot access the directory\n");
+                        return - EACCES;
+                    }
+                    
                     inode[index].dirname[0] = '\0';
                     inode[index].filename[0] = '\0';
                     memset(&inode[index], 0, sizeof(npheap_store));
@@ -447,7 +474,58 @@ int nphfuse_chmod(const char *path, mode_t mode)
 /** Change the owner and group of a file */
 int nphfuse_chown(const char *path, uid_t uid, gid_t gid)
 {
+    npheap_store *inode = NULL;
+    struct timeval currTime;
+
+    if(strcmp (path,"/")==0){
+        log_msg("Calling getRootDirectory() in CHOWN.\n");
+        
+        inode = getRootDirectory();
+        if(inode==NULL)
+        {
+            log_msg("Root directory not found. in CHOWN.\n");
+            return -ENOENT;
+        }
+        else
+        {
+            log_msg("Root directory found. in CHOWN.\n");
+            //Check if accessibilty can be given
+            int flag = checkAccess(inode);
+            //Deny the access
+            if(flag == 0){
+                return -EACCES;
+            }
+            //else set correct value
+            log_msg("Owner of root  changed in CHOWN.\n", path);
+            gettimeofday(&currTime, NULL);
+            inode->mystat.st_uid = uid;
+            inode->mystat.st_gid = gid;
+            inode->mystat.st_ctime = currTime.tv_sec;
+            return 0;
+        }
+    }
+    
+    inode = retrieve_inode(path);
+    
+    if(inode == NULL){
+        log_msg("Couldn't find path - %s - in CHOWN.\n", path);
         return -ENOENT;
+    }
+    //Check Accessibility
+    int flag1 = checkAccess(inode);
+    
+    //Deny the access
+    if(flag1 == 0){
+        return -EACCES;
+    }
+    
+    //else set correct value
+    log_msg("Owner of path - %s - changed in CHOWN.\n", path);
+    gettimeofday(&currTime, NULL);
+    inode->mystat.st_uid = uid;
+    inode->mystat.st_gid = gid;
+    inode->mystat.st_ctime = currTime.tv_sec;
+    return 0;
 }
 
 /** Change the size of a file */
