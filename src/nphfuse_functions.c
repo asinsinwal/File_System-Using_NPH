@@ -443,7 +443,7 @@ int nphfuse_rmdir(const char *path){
         return -ENOENT;
     }
 
-    for(offset = 2; offset < 1000; offset++){
+    for(offset = 2; offset < 502; offset++){
         inode= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
         if(inode==NULL)
         {
@@ -772,7 +772,39 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
  * version 2.5
  */
 int nphfuse_statfs(const char *path, struct statvfs *statv){
-    return -1;
+    log_msg("Entry into STATFS\n");
+    npheap_store *inode = NULL;
+    uint64_t offset = 2;
+    uint64_t index = 0;
+    uint8_t count = 0;
+    //Fill random data into statv
+    memset(statv, 0, sizeof(struct statvfs));
+
+    for(offset = 2; offset < 502; offset++){
+        inode= (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
+        if(inode==NULL)
+        {
+            log_msg("NPheap alloc failed for offset : %d",offset);
+        }
+        for (index = 0; index <16; index++)
+        {
+            if ((inode[index].dirname[0] != '\0') &&
+                (inode[index].filename[0] != '\0')){
+                count++;
+            }
+        }
+    }
+
+    statv->f_bsize = 1024;
+    statv->f_frsize = 1024;
+    statv->f_blocks = 8192;
+    statv->f_bfree = statv->f_blocks - (count/2) - 1;
+    statv->f_bavail = statv->f_bfree;
+    statv->f_files = 7998;
+    statv->f_ffree = statv->f_files - count;
+    statv->f_favail = statv->f_ffree - 1;
+    log_msg("Exiting from STATFS\n");
+    return 0;
 }
 
 /** Possibly flush cached data
