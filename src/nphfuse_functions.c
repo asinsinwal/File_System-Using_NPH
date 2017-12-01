@@ -123,7 +123,7 @@ int extract_directory_file(char *dir, char *filename, const char *path) {
 
     while((next = strtok(NULL, "/")) != NULL){
         strncat(dir, "/", 54);
-        strncat(dir, prev, 54);
+        strncat(dir, prnt, 54);
         prnt = next;
     }
 
