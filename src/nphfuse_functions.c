@@ -291,7 +291,7 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev){
     inode->mystat.st_dev = dev;
     inode->mystat.st_nlink = 1;
 
-    gettimeofday(currTime, NULL);
+    gettimeofday(&currTime, NULL);
     inode->mystat.st_atime = currTime.tv_sec;
     inode->mystat.st_mtime = currTime.tv_sec;
     inode->mystat.st_ctime = currTime.tv_sec;
