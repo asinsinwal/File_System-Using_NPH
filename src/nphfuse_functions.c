@@ -82,7 +82,7 @@ static npheap_store *retrieve_inode(const char *path){
 
 static npheap_store *get_free_inode(uint64_t *ind_val){
     int inode_index = 0;
-    bool flag = false;
+    int flag = 0;
     npheap_store *temp = NULL;
     uint64_t offset = 2;
     uint64_t index = 0;
@@ -98,18 +98,18 @@ static npheap_store *get_free_inode(uint64_t *ind_val){
             if ((strcmp (temp[index].dirname[0], '\0')) &&
                 (strcmp (temp[index].filename[0], '\0'))){
                 log_msg("Free inode found at %d in offset %d\n", index, offset);
-                flag = true;
+                flag = 1;
                 inode_index = index;
                 break;
             }
         }
         //If value obtained in inner loop
-        if(flag){
+        if(flag==1){
             break;
         }
     }
     //Return inode
-    if(flag){
+    if(flag==1){
         *ind_val = inode_index;
         return &temp[inode_index];
     }
