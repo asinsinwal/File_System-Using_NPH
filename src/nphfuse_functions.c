@@ -384,7 +384,7 @@ int nphfuse_rmdir(const char *path){
     char filename[128];
     npheap_store *inode = NULL;
     uint64_t offset = 2;
-    int flag = 0;
+    int index = 0;
 
     int extract = extract_directory_file(dir,filename,path);
 
