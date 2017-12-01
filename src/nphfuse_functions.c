@@ -29,6 +29,7 @@
 extern struct nphfuse_state *nphfuse_data;
 
 int npheap_fd = 1;
+uint64_t inode_off = 2;
 uint64_t data_off = 53;
 char *data[10999];
 
@@ -348,12 +349,10 @@ int nphfuse_mkdir(const char *path, mode_t mode){
         log_msg("Extraction failed. \n");
         return -EINVAL;
     }
+
     log_msg("Directory %s and Filename is %s \n", dir, filename);
 
     memset(inode, 0, sizeof(npheap_store));
-    strcpy(inode->dirname, dir);
-    strcpy(inode->filename, filename);
-
     strcpy(inode->dirname, dir);
     strcpy(inode->filename, filename);
 
@@ -369,7 +368,7 @@ int nphfuse_mkdir(const char *path, mode_t mode){
     inode->mystat.st_mtime = currTime.tv_sec;
     inode->mystat.st_ctime = currTime.tv_sec;
 
-    log_msg("mkdir executed successfully.!\n");
+    log_msg("mkdir executed successfully.! %d st_ino\n", inode->mystat.st_ino);
 
     return 0;
 }
