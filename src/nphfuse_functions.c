@@ -165,7 +165,7 @@ int nphfuse_getattr(const char *path, struct stat *stbuf)
         }
         else
         {
-            log_msg("Root directory not found. \n");
+            log_msg("Root directory found. \n");
             return 0;
         }
     }
