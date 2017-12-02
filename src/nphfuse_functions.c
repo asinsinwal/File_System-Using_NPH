@@ -922,6 +922,7 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
             }
             log_msg("Write after new link\n");
             blk_array[data_off] = next_link;
+            log_msg("Storing in Value %d\n", (curr_offset-FIXED_VALUE));
             dt_link[curr_offset - FIXED_VALUE] = data_off;
             data_off++;
             memset(next_link, 0, npheap_getsize(npheap_fd, dt_link[curr_offset - FIXED_VALUE]));
