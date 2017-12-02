@@ -1164,8 +1164,8 @@ int nphfuse_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t o
     char filename[128];
 
     log_msg("Into READDIR function.\n");
-    // filler(buf, ".", NULL, 0);
-    // filler(buf, "..", NULL, 0);
+    filler(buf, ".", NULL, 0);
+    filler(buf, "..", NULL, 0);
 
     int extract = extract_directory_file(dir, filename, path);
     log_msg("In readdir: directory - %s and file - %s for path %s \n", dir, filename,path);
