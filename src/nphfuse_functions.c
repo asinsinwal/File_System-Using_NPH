@@ -34,7 +34,7 @@ int npheap_fd = 1;
 uint64_t inode_off = 2;
 uint64_t data_off = 504;
 char *blk_array[9999];
-uint64_t link[10000];
+uint64_t dt_link[10000];
 
 //Getting the root directory
 static npheap_store *getRootDirectory(void){
@@ -792,7 +792,7 @@ int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct 
         curr_offset = inode->offset;
 
         while(pos_in_offset != 0){
-            curr_offset = link[curr_offset-FIXED_VALUE];
+            curr_offset = dt_link[curr_offset-FIXED_VALUE];
             pos_in_offset--;
         }
 
@@ -879,7 +879,7 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
     size_t offset_write = offset;
     size_t rem = 0;
     size_t pos_in_offset = 0;
-    char *next_link = NULL;
+    char *next_dt_link = NULL;
     size_t curr_offset = 0;
 
     log_msg("Writing started.\n");
@@ -888,13 +888,13 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
         curr_offset = inode->offset;
 
         while(pos_in_offset != 0){
-            curr_offset = link[curr_offset-FIXED_VALUE];
+            curr_offset = dt_link[curr_offset-FIXED_VALUE];
             pos_in_offset--;
         }
 
         blk_data = (char *)blk_array[curr_offset];
         if(blk_data==NULL){
-            link[curr_offset];
+            dt_link[curr_offset];
             return -ENOENT;
         }
 
@@ -911,9 +911,9 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
                 return -ENOMEM;
             }
             blk_array[data_off] = next_link;
-            link[curr_offset - FIXED_VALUE] = data_off;
+            dt_link[curr_offset - FIXED_VALUE] = data_off;
             data_off++;
-            memset(next_link, 0, npheap_getsize(npheap_fd, link[curr_offset - FIXED_VALUE]));
+            memset(next_link, 0, npheap_getsize(npheap_fd, dt_link[curr_offset - FIXED_VALUE]));
             memcpy(blk_data + rem, buf + curr_buff, curr_size - rem);
 
             offset_write = offset_write + curr_size - rem;
@@ -1208,6 +1208,7 @@ int nphfuse_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi){
 }
 
 int nphfuse_access(const char *path, int mask){
+
     return 0;
 }
 
@@ -1264,7 +1265,7 @@ static void initialAllocationNPheap(void){
         }
         memset(block_dt,0, npheap_getsize(npheap_fd, offset));
         memset(blk_array,0, sizeof(char *) * 9999);
-        memset(&link,0,sizeof(link));
+        memset(&dt_link,0,sizeof(dt_link));
     }
 
     log_msg("Allocation done for npheap %d.\n", npheap_getsize(npheap_fd, offset));
