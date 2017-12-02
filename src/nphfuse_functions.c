@@ -53,7 +53,7 @@ static npheap_store *retrieve_inode(const char *path){
     char filename[128];
     uint64_t offset = 2;
     npheap_store *start = NULL;
-
+    log_msg("Retrieving inode.!\n");
     //Get from directory
     int extract = extract_directory_file(dir, filename, path);
 
@@ -65,7 +65,7 @@ static npheap_store *retrieve_inode(const char *path){
     //Iterate through the inodes
     for(offset = 2; offset < 502; offset++){
         start = (npheap_store *)npheap_alloc(npheap_fd, offset, BLOCK_SIZE);
-        log_msg("Into inode loop for offset %d\n", offset);
+        //log_msg("Into inode loop for offset %d\n", offset);
         if(start == 0){
             log_msg("Couldn't allocate the memory for offset, something went wrong\n");
             return NULL;
@@ -139,59 +139,6 @@ int extract_directory_file(char *dir, char *filename, const char *path) {
     log_msg("Extracting: Directory is %s and Filename is %s for path\n", dir, filename, path);    
     return 0;
 }
-/*
-int extract_directory_file(char *dir, char *filename, const char *path) {
-    // char *slash = path, *next;
-    // while ((next = strpbrk(slash + 1, "\\/"))) slash = next;
-    // if (path != slash) slash++;
-    // *dir = strndup(path, slash - path);
-    // *filename = strdup(slash);
-
-    char *copy = NULL;
-    char *next = NULL;
-    char *prnt = NULL;
-
-    if(!path){
-        return 1;
-    }
-    memset(dir, 0, 236);
-    memset(filename, 0, 128);
-
-    if(!strcmp(path, "/")){
-        strcpy(dir, "/");
-        strcpy(filename, "/");
-        log_msg("Sent: dir and filename as \"/\".\n");
-        return 0;
-    }
-
-    copy = strdup(path);
-
-    next = strtok(copy, "/");
-    if(!next){
-        log_msg("Splitting into tokens\n");
-        free(copy);
-        return 1;
-    }
-
-    prnt = next;
-
-    while((next = strtok(NULL, "/")) != NULL){
-        strncat(dir, "/", 236);
-        strncat(dir, prnt, 128);
-        prnt = next;
-    }
-
-    if(dir[0] == '\0'){
-        strcpy(dir, "/");
-    }
-    strncpy(filename, prnt, 128);
-
-    log_msg("Extracting: Directory is %s and Filename is %s for path\n", dir, filename, path);
-
-    free(copy);
-    return 0;
-}
-*/
 
 int checkAccess(npheap_store *inode){
     //Temperory flag
