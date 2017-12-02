@@ -262,10 +262,9 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev){
 
 
     //Set the offset for data object
-    if(npheap_getsize(npheap_fd, data_off) != 0){
-        log_msg("Cannot allocate memory for data on %d offset. Reverting...\n", data_off);
-        inode_off--;
-        return -ENOSPC;
+    while(npheap_getsize(npheap_fd, data_off) != 0){
+        log_msg("Offset already in use - %d\n", data_off);
+        data_off++;
     }
 
     data_block = (char *)npheap_alloc(npheap_fd, data_off, BLOCK_SIZE);
