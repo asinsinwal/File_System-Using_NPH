@@ -918,6 +918,7 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
                 log_msg("Couldn't allocate memory for %d offset\n", data_off);
                 return -ENOMEM;
             }
+            log_msg("Write after new link\n");
             blk_array[data_off] = next_link;
             dt_link[curr_offset - FIXED_VALUE] = data_off;
             data_off++;
@@ -927,6 +928,7 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
             offset_write = offset_write + curr_size - rem;
             curr_buff = curr_buff + curr_size - rem;
             left_to_write = left_to_write - curr_size + rem;
+
         }else{
             log_msg("Last Write.\n");
             memcpy(blk_data + rem, buf + curr_buff, left_to_write);
