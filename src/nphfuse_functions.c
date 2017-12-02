@@ -514,7 +514,7 @@ int nphfuse_rename(const char *path, const char *newpath)
     //Check if user has access
     int flag = checkAccess(inode);
     if(flag==0){
-        log_msg("Cannot access the directory\n");
+        log_msg("Cannot access the directory.\n");
         return - EACCES;
     }
 
