@@ -809,7 +809,7 @@ int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct 
         curr_size = npheap_getsize(npheap_fd, curr_offset);
         rem = offset_read % BLOCK_SIZE;
 
-        if(curr_size <= left_to_read + rem){
+        if(curr_size > left_to_read + rem){
             log_msg("Reading still left.\n");
             memcpy(buf + curr_buff, blk_data + rem, curr_size - rem);
             offset_read = offset_read + curr_size - rem;
@@ -912,7 +912,7 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
         curr_size = npheap_getsize(npheap_fd, curr_offset);
         rem = offset_write % BLOCK_SIZE;
 
-        if(curr_size >= left_to_write + rem){
+        if(curr_size > left_to_write + rem){
             log_msg("Multiple write for %d curr_size and size is %d\n", curr_size, size);
 
             next_link = (char *)npheap_alloc(npheap_fd,data_off,BLOCK_SIZE);
