@@ -27,12 +27,14 @@
 #include <libgen.h>
 
 #define BLOCK_SIZE 8192
+#define FIXED_VALUE 1000
 extern struct nphfuse_state *nphfuse_data;
 
 int npheap_fd = 1;
 uint64_t inode_off = 2;
 uint64_t data_off = 504;
 char *blk_array[9999];
+uint64_t link[10000];
 
 //Getting the root directory
 static npheap_store *getRootDirectory(void){
@@ -764,7 +766,7 @@ int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct 
         return - EACCES;
     }
 
-    blk_data = (char *)npheap_alloc(npheap_fd, inode->offset, BLOCK_SIZE);
+    blk_data = (char *)blk_array[inode->offset];
     if(blk_data==NULL){
         return -ENOENT;
     }
@@ -773,20 +775,57 @@ int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct 
     size_t offset_read = offset;
     size_t rem = 0;
     size_t curr_buff = 0;
-    uint64_t curr_offset = 0;
-    uint64_t pos_in_offset = 0;
-    char *next_data = NULL;
+    size_t curr_offset = 0;
+    size_t pos_in_offset = 0;
+    size_t curr_size = 0;
 
+    curr_size = npheap_getsize(npheap_fd, inode->offset);
+    if(curr_size == 0){
+        return 0;
+    }
 
     log_msg("Reading started.\n");
 
     while(left_to_read != 0){
+        //log_msg("Reached here\n");
         pos_in_offset = offset_read/8192;
         curr_offset = inode->offset;
 
+        while(pos_in_offset != 0){
+            curr_offset = link[curr_offset-FIXED_VALUE];
+            pos_in_offset--;
+        }
+
+        blk_data = (char *)blk_array[curr_offset];
+        if(blk_data==NULL){
+            return -ENOENT;
+        }
+
+        if(npheap_getsize(npheap_fd, curr_offset) == 0){
+           return -EINVAL;
+        }
+
+        curr_size = npheap_getsize(npheap_fd, curr_offset);
+        rem = offset_read % 8192;
+
+        if(curr_size <= left_to_read + rem){
+            memcpy(buf + curr_buff, blk_data + rem, curr_size - rem);
+            offset_read = offset_read + curr_size - rem;
+            curr_buff = curr_buff + curr_size - rem;
+            left_to_read = left_to_read - curr_buff + rem;
+        }else{
+           log_msg("Last read in the data block.\n");
+           memcpy(buf + curr_buff, blk_data + rem, left_to_read);
+           offset_read = offset_read + left_to_read;
+           curr_buff = curr_buff + left_to_read;
+           left_to_read = 0;
+        }
     }
 
+    gettimeofday(&currTime, NULL);
+    inode->mystat.st_atime = currTime.tv_sec;
 
+    return curr_buff;
 }
 
 /** Write data to an open file
@@ -798,7 +837,105 @@ int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct 
  */
 int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
 	     struct fuse_file_info *fi){
-    return -ENOENT;
+    
+    log_msg("Into WRITE function.\n");
+    npheap_store *inode = NULL;
+    struct timeval currTime;
+    char *blk_data = NULL;
+
+    //Root is not the file, so throw error
+    if(strcmp(path,"/")==0){
+        return -ENOENT;
+    }
+
+    inode = retrieve_inode(path);
+    if(inode==NULL){
+        log_msg("Couldn't find file.\n");
+        return -ENOENT;
+    }
+
+    //Check for the access
+    int flag = checkAccess(inode);
+    if(flag==0){
+        log_msg("Cannot access in root.\n");
+        return - EACCES;
+    }
+
+    size_t curr_size = 0;
+    char *temp = NULL;
+
+    curr_size = npheap_getsize(npheap_fd, inode->offset);
+    if(curr_size == 0){
+        return 0;
+    }
+
+    blk_data = (char *)blk_array[inode->offset];
+    if(blk_data == NULL){
+        return -ENOENT;
+    }
+
+    size_t curr_buff = 0;
+    size_t left_to_write = size;
+    size_t offset_write = offset;
+    size_t rem = 0;
+    size_t pos_in_offset = 0;
+    char *next_link = NULL;
+    size_t curr_offset = 0;
+
+    log_msg("Writing started.\n");
+    while(left_to_write > 0){
+        pos_in_offset = offset_write/8192;
+        curr_offset = inode->offset;
+
+        while(pos_in_offset != 0){
+            curr_offset = link[curr_offset-FIXED_VALUE];
+            pos_in_offset--;
+        }
+
+        blk_data = (char *)blk_array[curr_offset];
+        if(blk_data==NULL){
+            link[curr_offset];
+            return -ENOENT;
+        }
+
+        if(npheap_getsize(npheap_fd, curr_offset) == 0){
+           return -EINVAL;
+        }
+
+        curr_size = npheap_getsize(npheap_fd, curr_offset);
+        rem = offset_write % 8192;
+
+        if(curr_size <= left_to_write + rem){
+            next_link = (char *)npheap_alloc(npheap_fd,data_off,BLOCK_SIZE);
+            if(next_link==NULL){
+                return -ENOMEM;
+            }
+            blk_array[data_off] = next_link;
+            link[curr_offset - FIXED_VALUE] = data_off;
+            data_off++;
+            memset(next_link, 0, npheap_getsize(npheap_fd, link[curr_offset - FIXED_VALUE]));
+            memcpy(blk_data + rem, buf + curr_buff, curr_size - rem);
+
+            offset_write = offset_write + curr_size - rem;
+            curr_buff = curr_buff + curr_size - rem;
+            left_to_write = left_to_write - curr_size + rem;
+        }else{
+            log_msg("Last Write.\n");
+            memcpy(blk_data + rem, buf + curr_buff, left_to_write);
+
+            offset_write = offset_write + left_to_write;
+            curr_buff = curr_buff + left_to_write;
+            left_to_write = 0;
+        }
+    }
+
+    gettimeofday(&currTime, NULL);
+    inode->mystat.st_atime = currTime.tv_sec;
+    inode->mystat.st_mtime = currTime.tv_sec;
+    inode->mystat.st_mtime = currTime.tv_sec;
+    inode->mystat.st_size = inode->mystat.st_size + curr_buff;
+
+    return curr_buff;
 }
 
 /** Get file system statistics
@@ -1127,6 +1264,7 @@ static void initialAllocationNPheap(void){
         }
         memset(block_dt,0, npheap_getsize(npheap_fd, offset));
         memset(blk_array,0, sizeof(char *) * 9999);
+        memset(&link,0,sizeof(link));
     }
 
     log_msg("Allocation done for npheap %d.\n", npheap_getsize(npheap_fd, offset));
