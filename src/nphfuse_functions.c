@@ -742,6 +742,7 @@ int nphfuse_open(const char *path, struct fuse_file_info *fi){
 // with the fusexmp code which returns the amount of data also
 // returned by read.
 int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi){
+/*
     log_msg("Into READ function.\n");
     //Variables needed
     npheap_store *inode = NULL;
@@ -826,6 +827,8 @@ int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct 
     inode->mystat.st_atime = currTime.tv_sec;
 
     return curr_buff;
+    */
+    return -ENOENT;
 }
 
 /** Write data to an open file
@@ -837,7 +840,7 @@ int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct 
  */
 int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
 	     struct fuse_file_info *fi){
-    
+/*    
     log_msg("Into WRITE function.\n");
     npheap_store *inode = NULL;
     struct timeval currTime;
@@ -938,6 +941,8 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
     inode->mystat.st_size = inode->mystat.st_size + curr_buff;
 
     return curr_buff;
+    */
+    return -ENOENT;
 }
 
 /** Get file system statistics
