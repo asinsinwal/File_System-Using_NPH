@@ -737,7 +737,55 @@ int nphfuse_open(const char *path, struct fuse_file_info *fi){
 // with the fusexmp code which returns the amount of data also
 // returned by read.
 int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi){
-    return -ENOENT;
+    npheap_store *inode = NULL;
+    inode = retrieve_inode(path);
+    uint64_t data_index = inode->offset;
+    int *data_block = NULL;
+    char *temp = (char *)malloc(sizeof(BLOCK_SIZE));
+    data_block = (uint64_t *)npheap_alloc(npheap_fd, data_index, BLOCK_SIZE);
+    memset(temp, 0, BLOCK_SIZE);
+    memcpy(temp, data_block, BLOCK_SIZE);
+    int i;
+    int x = -1;
+    char *file_data = NULL;
+    int start =BLOCK_SIZE;
+    int end =0;
+    int buff_offset =0;
+    int start_index = offset;
+    char *buf_copy = buf;
+    memset(buf, 0, size);
+    for(i=0; i<8192/sizeof(int); i++){
+        x=data_block[i];
+        if(x==0 && i==0) 
+        {
+            return 0;
+        }
+        else if(x!=0) {
+            if(offset < start) {
+                file_data = (char *)npheap_alloc(npheap_fd, x, BLOCK_SIZE);
+                if(size > (8192-start_index+end){
+                    // memset(buf, 0, size);
+                    memcpy(buf_copy, &file_data[offset], BLOCK_SIZE-offset);     
+                    buf_copy=buf_copy+BLOCK_SIZE;
+                    fi->fh = data_block;
+                    offset =0; //For next blocks of data it shd start at 0
+                }
+                else{
+                    // memset(buf, 0, size);
+                    memcpy(buf_copy, &file_data[offset], size-end);     
+                    buf_copy=buf_copy+BLOCK_SIZE;
+                    fi->fh = data_block;
+                    return size;
+                }           
+            }
+            else {
+                continue;
+            }
+            start = start+BLOCK_SIZE;
+            end = end+BLOCK_SIZE;
+        }
+    }        
+    return 0;
 }
 
 /** Write data to an open file
@@ -749,7 +797,55 @@ int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct 
  */
 int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
 	     struct fuse_file_info *fi){
-    return -ENOENT;
+            npheap_store *inode = NULL;
+            inode = retrieve_inode(path);
+            uint64_t data_index = inode->offset;
+            int *data_block = NULL;
+            char *temp = (char *)malloc(sizeof(BLOCK_SIZE));
+            data_block = (uint64_t *)npheap_alloc(npheap_fd, data_index, BLOCK_SIZE);
+            memset(temp, 0, BLOCK_SIZE);
+            memcpy(temp, data_block, BLOCK_SIZE);
+            int i;
+            int x = -1;
+            char *file_data = NULL;
+            int start =BLOCK_SIZE;
+            int end =0;
+            int buff_offset =0;
+            int start_index = offset;
+            char *buf_copy = buf;
+            memset(buf, 0, size);
+            for(i=0; i<8192/sizeof(int); i++){
+                x=data_block[i];
+                if(x==0 && i==0) 
+                {
+                    return 0;
+                }
+                else if(x!=0) {
+                    if(offset < start) {
+                        file_data = (char *)npheap_alloc(npheap_fd, x, BLOCK_SIZE);
+                        if(size > (8192-start_index+end){
+                            // memset(buf, 0, size);
+                            memcpy(buf_copy, &file_data[offset], BLOCK_SIZE-offset);     
+                            buf_copy=buf_copy+BLOCK_SIZE;
+                            fi->fh = data_block;
+                            offset =0; //For next blocks of data it shd start at 0
+                        }
+                        else{
+                            // memset(buf, 0, size);
+                            memcpy(buf_copy, &file_data[offset], size-end);     
+                            buf_copy=buf_copy+BLOCK_SIZE;
+                            fi->fh = data_block;
+                            return size;
+                        }           
+                    }
+                    else {
+                        continue;
+                    }
+                }
+                start = start+BLOCK_SIZE;
+                end = end+BLOCK_SIZE;
+            }        
+            return 0;
 }
 
 /** Get file system statistics
