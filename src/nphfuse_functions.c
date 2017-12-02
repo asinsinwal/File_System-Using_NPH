@@ -879,7 +879,7 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
     size_t offset_write = offset;
     size_t rem = 0;
     size_t pos_in_offset = 0;
-    char *next_dt_link = NULL;
+    char *next_link = NULL;
     size_t curr_offset = 0;
 
     log_msg("Writing started.\n");
