@@ -28,14 +28,14 @@
 #include <libgen.h>
 
 #define BLOCK_SIZE 8192
-#define FIXED_VALUE 1000
+#define FIXED_VALUE 50
 extern struct nphfuse_state *nphfuse_data;
 
 int npheap_fd = 1;
 uint64_t inode_off = 2;
 uint64_t data_off = 504;
 char *blk_array[9999];
-uint64_t dt_link[10000];
+uint64_t dt_link[15000];
 
 //Getting the root directory
 static npheap_store *getRootDirectory(void){
