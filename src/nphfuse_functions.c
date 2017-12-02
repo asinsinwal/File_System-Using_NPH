@@ -815,12 +815,14 @@ int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct 
             offset_read = offset_read + curr_size - rem;
             curr_buff = curr_buff + curr_size - rem;
             left_to_read = left_to_read - curr_size + rem;
+            log_msg("Text read.\n");
         }else{
             log_msg("Last read in the data block.\n");
             memcpy(buf + curr_buff, blk_data + rem, left_to_read);
             offset_read = offset_read + left_to_read;
             curr_buff = curr_buff + left_to_read;
             left_to_read = 0;
+            log_msg("Text read from mem.\n");
         }
     }
 
@@ -927,8 +929,8 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
 
             offset_write = offset_write + curr_size - rem;
             curr_buff = curr_buff + curr_size - rem;
-            left_to_write = left_to_write - curr_size + rem;
-
+            left_to_write = left_to_write - (curr_size + rem);
+            log_msg("Text written.\n");
         }else{
             log_msg("Last Write.\n");
             memcpy(blk_data + rem, buf + curr_buff, left_to_write);
@@ -936,6 +938,7 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
             offset_write = offset_write + left_to_write;
             curr_buff = curr_buff + left_to_write;
             left_to_write = 0;
+            log_msg("Text copied.\n");
         }
         ret = curr_buff;
     }
