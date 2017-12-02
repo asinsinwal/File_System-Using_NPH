@@ -906,6 +906,8 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
         rem = offset_write % 8192;
 
         if(curr_size <= left_to_write + rem){
+            log_msg("Multiple write for %d curr_size", curr_size);
+
             next_link = (char *)npheap_alloc(npheap_fd,data_off,BLOCK_SIZE);
             if(next_link==NULL){
                 return -ENOMEM;
@@ -1209,6 +1211,38 @@ int nphfuse_fsyncdir(const char *path, int datasync, struct fuse_file_info *fi){
 
 int nphfuse_access(const char *path, int mask){
 
+    npheap_store *inode = NULL;
+    
+    if(strcmp(path,"/")==0){
+        inode = getRootDirectory();
+        if(inode==NULL)
+        {
+            log_msg("Root directory not found in access.\n");
+            return -ENOENT;
+        }
+        else
+        {
+            log_msg("Checking Access of root\n");
+            int flag = checkAccess(inode);
+            if(flag==0){
+                log_msg("Cannot access the directory\n");
+                return -EACCES;
+            }
+            return 0;
+        }
+    }
+
+    inode = retrieve_inode(path);
+
+    if(inode == NULL){
+        return -ENOENT;
+    }
+    int flag = checkAccess(inode);
+    if(flag==0){
+        log_msg("Cannot access the directory\n");
+        return -EACCES;
+    }
+    
     return 0;
 }
 
@@ -1241,7 +1275,32 @@ int nphfuse_ftruncate(const char *path, off_t offset, struct fuse_file_info *fi)
  */
 int nphfuse_fgetattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi)
 {
+    log_msg("Into fgetattr.\n");
+    npheap_store *inode = NULL;
+    char dir[236];
+    char filename[128];
+
+    if(strcmp(path,"/")==0){
+        inode = getRootDirectory();
+        if(inode==NULL)
+        {
+            log_msg("Root directory not found in getattr.\n");
+            return -ENOENT;
+        }else{
+            log_msg("Everything worked fine\n");
+            memcpy(statbuf, &inode->mystat, sizeof(struct stat));
+            return 0;
+        }
+    }
+
+    inode = retrieve_inode(path);
+    if(inode==NULL){
         return -ENOENT;
+    }
+
+    log_msg("Worked fine\n");
+    memcpy(statbuf, &inode->mystat, sizeof(struct stat));
+    return 0;
 }
 
 //Allocate the superblock and the inode
