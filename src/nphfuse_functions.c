@@ -519,8 +519,8 @@ int nphfuse_rename(const char *path, const char *newpath)
     }
 
     //memset the dirname and filename
-    memset(inode->dirname, 0, 236);
-    memset(inode->filename, 0, 128);
+    //memset(inode->dirname, 0, 236);
+    //memset(inode->filename, 0, 128);
 
     //copy the new path
     strcpy(inode->dirname, dir);
