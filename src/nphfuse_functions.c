@@ -262,7 +262,7 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev){
 
 
     //Set the offset for data object
-    while(npheap_getsize(npheap_fd, data_off) != 0){
+    while(npheap_getsize(npheap_fd, data_off) != 0 && data_off < 50000){
         log_msg("Offset already in use - %d\n", data_off);
         data_off++;
     }
