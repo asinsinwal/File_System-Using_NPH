@@ -1,3 +1,5 @@
+// Project 3: Sayali Godbole, ssgodbol; Animesh Sinsinwal, assinsin; Sameer Poudwal, spoudwa; 
+
 /*
   Copyright (C) 2016 Hung-Wei Tseng, Ph.D. <hungwei_tseng@ncsu.edu>
 

@@ -1,3 +1,5 @@
+// Project 3: Sayali Godbole, ssgodbol; Animesh Sinsinwal, assinsin; Sameer Poudwal, spoudwa; 
+
 /*
   NPHeap File System
   Copyright (C) 2016 Hung-Wei Tseng, Ph.D. <hungwei_tseng@ncsu.edu>
@@ -839,7 +841,7 @@ int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct 
  */
 int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
 	     struct fuse_file_info *fi){
-    
+/*    
     log_msg("Into WRITE function.\n");
     npheap_store *inode = NULL;
     struct timeval currTime;
@@ -947,6 +949,8 @@ int nphfuse_write(const char *path, const char *buf, size_t size, off_t offset,
     inode->mystat.st_size = inode->mystat.st_size + ret;
 
     return ret;
+    */
+    return -ENOENT;
 }
 
 /** Get file system statistics
