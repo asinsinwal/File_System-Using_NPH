@@ -32,6 +32,7 @@ extern struct nphfuse_state *nphfuse_data;
 int npheap_fd = 1;
 uint64_t inode_off = 2;
 uint64_t data_off = 504;
+char *blk_array[9999];
 
 //Getting the root directory
 static npheap_store *getRootDirectory(void){
@@ -222,7 +223,7 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev){
     npheap_store *inode = NULL;
     char dir[236];
     char filename[128];
-    char *data_block = NULL;
+    char *blk_data = NULL;
     uint64_t findex = -1;
     log_msg("Into mkdir functionality.\n");
     inode = get_free_inode(&findex);
@@ -262,15 +263,15 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev){
 
 
     //Set the offset for data object
-    while(npheap_getsize(npheap_fd, data_off) != 0 && data_off < 50000){
+    while(npheap_getsize(npheap_fd, data_off) != 0 && data_off < 10000){
         log_msg("Offset already in use - %d\n", data_off);
         data_off++;
     }
 
-    data_block = (char *)npheap_alloc(npheap_fd, data_off, BLOCK_SIZE);
+    blk_data  = (char *)npheap_alloc(npheap_fd, data_off, BLOCK_SIZE);
 
     //Check if allocated
-    if(data_block == NULL){
+    if(blk_data == NULL){
         log_msg("Data block, couldn't be allocated\n");
         memset(inode, 0, sizeof(npheap_store));
         inode_off--;
@@ -278,7 +279,8 @@ int nphfuse_mknod(const char *path, mode_t mode, dev_t dev){
     }
 
     //Everything worked fine
-    memset(data_block, 0, BLOCK_SIZE);
+    memset(blk_data, 0, BLOCK_SIZE);
+    blk_array[data_off] = blk_data;
     inode->offset = data_off;
     log_msg("mknod ran successfully in NPHeap for %d data offset\n", data_off);
     data_off++;
@@ -322,7 +324,7 @@ int nphfuse_mkdir(const char *path, mode_t mode){
     inode->mystat.st_mode = S_IFDIR | mode;
     inode->mystat.st_gid = getgid();
     inode->mystat.st_uid = getuid();
-    inode->mystat.st_size = BLOCK_SIZE;
+    inode->mystat.st_size = BLOCK_SIZE/2;
     inode->mystat.st_nlink = 2;
 
     gettimeofday(&currTime, NULL);
@@ -367,6 +369,7 @@ int nphfuse_unlink(const char *path){
 
     inode->dirname[0] = '\0';
     inode->filename[0] = '\0';
+    blk_array[inode->offset] == NULL;
     memset(inode, 0, sizeof(npheap_store));
     log_msg("Exiting UNLINK.\n");
     return 0;
@@ -737,7 +740,53 @@ int nphfuse_open(const char *path, struct fuse_file_info *fi){
 // with the fusexmp code which returns the amount of data also
 // returned by read.
 int nphfuse_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi){
-    return -ENOENT;
+    log_msg("Into READ function.\n");
+    //Variables needed
+    npheap_store *inode = NULL;
+    struct timeval currTime;
+    char *blk_data = NULL;
+
+    //Root is not the file, so throw error
+    if(strcmp(path,"/")==0){
+        return -ENOENT;
+    }
+
+    inode = retrieve_inode(path);
+    if(inode==NULL){
+        log_msg("Couldn't find file.\n");
+        return -ENOENT;
+    }
+
+    //Check for the access
+    int flag = checkAccess(inode);
+    if(flag==0){
+        log_msg("Cannot access in root.\n");
+        return - EACCES;
+    }
+
+    blk_data = (char *)npheap_alloc(npheap_fd, inode->offset, BLOCK_SIZE);
+    if(blk_data==NULL){
+        return -ENOENT;
+    }
+
+    size_t left_to_read = size;
+    size_t offset_read = offset;
+    size_t rem = 0;
+    size_t curr_buff = 0;
+    uint64_t curr_offset = 0;
+    uint64_t pos_in_offset = 0;
+    char *next_data = NULL;
+
+
+    log_msg("Reading started.\n");
+
+    while(left_to_read != 0){
+        pos_in_offset = offset_read/8192;
+        curr_offset = inode->offset;
+
+    }
+
+
 }
 
 /** Write data to an open file
@@ -1077,10 +1126,10 @@ static void initialAllocationNPheap(void){
             return;
         }
         memset(block_dt,0, npheap_getsize(npheap_fd, offset));
+        memset(blk_array,0, sizeof(char *) * 9999);
     }
 
     log_msg("Allocation done for npheap %d.\n", npheap_getsize(npheap_fd, offset));
-
     for(offset = 2; offset < 502; offset++){
         //log_msg("Inode allocation for %d offset\n", offset);
         if(npheap_getsize(npheap_fd, offset)==0){
