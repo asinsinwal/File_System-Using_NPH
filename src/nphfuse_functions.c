@@ -486,10 +486,52 @@ int nphfuse_symlink(const char *path, const char *link)
 // both path and newpath are fs-relative
 int nphfuse_rename(const char *path, const char *newpath)
 {
-    log_msg("Rename called for %s path to %s newpath\n", path, newpath);
+    log_msg("RENAME called for %s path to %s newpath\n", path, newpath);
+    struct timeval currTime;
+    npheap_store *inode = NULL;
+    char dir[236];
+    char filename[128];
 
+    //Root directory cannot be changed.
+    if(strcmp(path,"/")==0){
+        return -EACCES;
+    }
 
-    return -1;
+    //Get inode into path
+    inode = retrieve_inode(path);
+    if(inode == NULL){
+        log_msg("Inode was not found in rename.\n");
+        return -ENOENT;
+    }
+
+    //Check if newpath is valid
+    int extract = extract_directory_file(dir, filename, newpath);
+    if(extract == 1){
+        log_msg("Newpath is invalid.\n");
+        return -EINVAL;
+    }
+
+    //Check if user has access
+    int flag = checkAccess(inode);
+    if(flag==0){
+        log_msg("Cannot access the directory\n");
+        return - EACCES;
+    }
+
+    //memset the dirname and filename
+    memset(inode->dirname, 0, 236);
+    memset(inode->filename, 0, 128);
+
+    //copy the new path
+    strcpy(inode->dirname, dir);
+    strcpy(inode->filename, filename);
+
+    //Change the changetime
+    gettimeofday(&currTime, NULL);
+    inode->mystat.st_ctime = currTime.tv_sec;
+
+    log_msg("Exiting from RENAME.\n");
+    return 0;
 }
 
 /** Create a hard link to a file */
